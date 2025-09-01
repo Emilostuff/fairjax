@@ -19,7 +19,9 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Rust Version
-      run: rustup show active-toolchain
+      run: |
+        rustup show active-toolchain
+        rustup --version
 
     - name: Init Cargo Cache
       uses: actions/cache@v3
