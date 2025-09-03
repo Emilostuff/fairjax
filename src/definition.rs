@@ -1,18 +1,18 @@
-use crate::{MessageId, Response, Store, message::Message, pattern::Pattern};
+use crate::{MessageId, Store, message::Message, pattern::Pattern};
 use std::collections::HashMap;
 
-pub trait Definition<M: Message> {
-    fn consume(&mut self, message: M) -> Option<Response>;
+pub trait Definition<M: Message, R> {
+    fn consume(&mut self, message: M) -> Option<R>;
 }
 
-pub struct JoinDefinition<M: Message> {
+pub struct JoinDefinition<M: Message, R> {
     store: Store<M>,
     id_counter: usize,
-    patterns: Vec<Box<dyn Pattern<M>>>,
+    patterns: Vec<Box<dyn Pattern<M, R>>>,
 }
 
-impl<M: Message> JoinDefinition<M> {
-    pub fn new(patterns: Vec<Box<dyn Pattern<M>>>) -> Self {
+impl<M: Message, R> JoinDefinition<M, R> {
+    pub fn new(patterns: Vec<Box<dyn Pattern<M, R>>>) -> Self {
         JoinDefinition {
             store: HashMap::new(),
             id_counter: 0,
@@ -51,8 +51,8 @@ impl<M: Message> JoinDefinition<M> {
     }
 }
 
-impl<M: Message> Definition<M> for JoinDefinition<M> {
-    fn consume(&mut self, message: M) -> Option<Response> {
+impl<M: Message, R> Definition<M, R> for JoinDefinition<M, R> {
+    fn consume(&mut self, message: M) -> Option<R> {
         // Generate new id for incoming message
         let id = self.create_id();
 

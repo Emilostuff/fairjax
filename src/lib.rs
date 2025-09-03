@@ -10,9 +10,4 @@ pub type MessageId = usize;
 pub type Store<M> = std::collections::HashMap<MessageId, M>;
 
 pub type GuardFn<M> = Box<dyn Fn(&Vec<&M>) -> bool>;
-pub type BodyFn<M> = Box<dyn Fn(&Vec<&M>) -> Option<Response>>;
-
-pub enum Response {
-    Continue,
-    Stop,
-}
+pub type BodyFn<M, R> = Box<dyn Fn(&Vec<&M>) -> Option<R>>;

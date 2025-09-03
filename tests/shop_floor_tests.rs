@@ -5,17 +5,23 @@ use fairjax::pattern::PatternMatcher;
 use fairjax::permute::Element;
 use fairjax::{BodyFn, GuardFn, MessageId};
 
-///////////////////////////// User specified
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy, PartialEq)]
 enum MyMessage {
     Fix { id: usize },
     Fault { id: usize, timestamp: usize },
 }
 
-impl Message for MyMessage {}
+impl MyMessage {
+    fn fix(id: usize) -> Self {
+        MyMessage::Fix { id }
+    }
 
-///////////////////////////// To be generated
+    fn fault(id: usize, timestamp: usize) -> Self {
+        MyMessage::Fault { id, timestamp }
+    }
+}
+
+impl Message for MyMessage {}
 
 #[derive(Default, Clone, Debug)]
 pub struct FaultFaultFix {
@@ -122,24 +128,22 @@ impl MatchGroup<MyMessage> for FaultFix {
     }
 }
 
-fn main() {
-    // Messages
-    let messages = [
-        MyMessage::Fault {
-            id: 1,
-            timestamp: 1035,
-        },
-        MyMessage::Fault {
-            id: 2,
-            timestamp: 1039,
-        },
-        MyMessage::Fault {
-            id: 3,
-            timestamp: 1056,
-        },
-        MyMessage::Fix { id: 3 },
-    ];
+#[derive(Debug, Clone, PartialEq)]
+struct Response {
+    pattern_id: usize,
+    matched_messages: Vec<MyMessage>,
+}
 
+impl Response {
+    fn new(pattern_id: usize, matched_messages: Vec<MyMessage>) -> Self {
+        Response {
+            pattern_id,
+            matched_messages,
+        }
+    }
+}
+
+fn get_join_definition() -> JoinDefinition<MyMessage, Response> {
     // Guards
     let faultfaultfix_guard: GuardFn<MyMessage> =
         Box::new(
@@ -174,20 +178,69 @@ fn main() {
         );
 
     // Bodies
-    let faultfaultfix_body: BodyFn<MyMessage> = Box::new(|_: &Vec<&MyMessage>| None);
-    let faultfix_body: BodyFn<MyMessage> = Box::new(|_: &Vec<&MyMessage>| None);
+    let faultfix_body: BodyFn<MyMessage, Response> = Box::new(|msg: &Vec<&MyMessage>| {
+        Some(Response {
+            pattern_id: 0,
+            matched_messages: msg.iter().map(|m| *m.to_owned()).collect(),
+        })
+    });
+    let faultfaultfix_body: BodyFn<MyMessage, Response> = Box::new(|msg: &Vec<&MyMessage>| {
+        Some(Response {
+            pattern_id: 1,
+            matched_messages: msg.iter().map(|m| *m.to_owned()).collect(),
+        })
+    });
 
     // Create patterns
-    let faultfaultfix =
-        PatternMatcher::<FaultFaultFix, MyMessage>::new(faultfaultfix_guard, faultfaultfix_body);
-    let faultfix = PatternMatcher::<FaultFix, MyMessage>::new(faultfix_guard, faultfix_body);
+    let faultfaultfix = PatternMatcher::<FaultFaultFix, MyMessage, Response>::new(
+        faultfaultfix_guard,
+        faultfaultfix_body,
+    );
+    let faultfix =
+        PatternMatcher::<FaultFix, MyMessage, Response>::new(faultfix_guard, faultfix_body);
 
-    // Create join definition
-    let mut def = JoinDefinition::new(vec![Box::new(faultfix), Box::new(faultfaultfix)]);
+    // Return join definition
+    JoinDefinition::new(vec![Box::new(faultfix), Box::new(faultfaultfix)])
+}
 
-    // test
+fn run(messages: Vec<MyMessage>, expected_responses: Vec<Response>) {
+    let mut def = get_join_definition();
+    let mut output = Vec::new();
+
     for message in messages {
-        println!("\n{:?}:", message);
-        def.consume(message);
+        if let Some(response) = def.consume(message) {
+            output.push(response);
+        }
     }
+
+    assert_eq!(expected_responses, output);
+}
+
+// TESTS
+
+#[test]
+fn test_fault_fault_fix() {
+    // Messages
+    let messages = vec![
+        MyMessage::fault(1, 1035),
+        MyMessage::fault(2, 1039),
+        MyMessage::fault(3, 1056),
+        MyMessage::fix(3),
+        MyMessage::fix(2),
+    ];
+
+    // Output
+    let expected = vec![
+        Response::new(
+            1,
+            vec![
+                MyMessage::fault(1, 1035),
+                MyMessage::fault(3, 1056),
+                MyMessage::fix(3),
+            ],
+        ),
+        Response::new(0, vec![MyMessage::fault(2, 1039), MyMessage::fix(2)]),
+    ];
+
+    run(messages, expected);
 }

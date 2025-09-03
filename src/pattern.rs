@@ -1,21 +1,21 @@
 use crate::Store;
 use crate::tree::Node;
-use crate::{BodyFn, GuardFn, MessageId, Response, matchgroup::MatchGroup, message::Message};
+use crate::{BodyFn, GuardFn, MessageId, matchgroup::MatchGroup, message::Message};
 
-pub trait Pattern<M: Message> {
+pub trait Pattern<M: Message, R> {
     fn consume(&mut self, message: &M, id: MessageId, store: &Store<M>) -> Option<Vec<MessageId>>;
-    fn execute(&self, messages: &Vec<MessageId>, store: &Store<M>) -> Option<Response>;
+    fn execute(&self, messages: &Vec<MessageId>, store: &Store<M>) -> Option<R>;
     fn remove(&mut self, messages: &Vec<MessageId>);
 }
 
-pub struct PatternMatcher<G: MatchGroup<M>, M: Message> {
+pub struct PatternMatcher<G: MatchGroup<M>, M: Message, R> {
     tree: Node<G, M>,
     guard_fn: GuardFn<M>,
-    body_fn: BodyFn<M>,
+    body_fn: BodyFn<M, R>,
 }
 
-impl<G: MatchGroup<M>, M: Message> PatternMatcher<G, M> {
-    pub fn new(guard_fn: GuardFn<M>, body_fn: BodyFn<M>) -> Self {
+impl<G: MatchGroup<M>, M: Message, R> PatternMatcher<G, M, R> {
+    pub fn new(guard_fn: GuardFn<M>, body_fn: BodyFn<M, R>) -> Self {
         Self {
             tree: Node::<G, M>::new(),
             guard_fn,
@@ -24,7 +24,7 @@ impl<G: MatchGroup<M>, M: Message> PatternMatcher<G, M> {
     }
 }
 
-impl<G: MatchGroup<M>, M: Message> Pattern<M> for PatternMatcher<G, M> {
+impl<G: MatchGroup<M>, M: Message, R> Pattern<M, R> for PatternMatcher<G, M, R> {
     fn consume(&mut self, message: &M, id: MessageId, store: &Store<M>) -> Option<Vec<MessageId>> {
         let response = self.tree.ramification(message, id, store, &self.guard_fn);
         println!();
@@ -32,7 +32,7 @@ impl<G: MatchGroup<M>, M: Message> Pattern<M> for PatternMatcher<G, M> {
         response
     }
 
-    fn execute(&self, messages: &Vec<MessageId>, store: &Store<M>) -> Option<Response> {
+    fn execute(&self, messages: &Vec<MessageId>, store: &Store<M>) -> Option<R> {
         // Extract actual messages
         let matched_messages: Vec<_> = messages.iter().map(|id| &store[id]).collect();
 
