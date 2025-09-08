@@ -25,32 +25,23 @@ impl Message for MyMessage {}
 
 #[derive(Default, Clone, Debug)]
 pub struct FaultFaultFix {
-    fault: [Option<MessageId>; 2],
-    fix: [Option<MessageId>; 1],
+    messages: [Option<MessageId>; 3],
     counter: u8,
 }
 
 impl MatchGroup<MyMessage> for FaultFaultFix {
     fn extend(&self, message: &MyMessage, id: MessageId) -> Option<Self> {
         let mut new_group = self.clone();
-        match message {
-            MyMessage::Fix { .. } => {
-                for i in 0..new_group.fix.len() {
-                    if new_group.fix[i].is_none() {
-                        new_group.fix[i] = Some(id);
-                        new_group.counter += 1;
-                        return Some(new_group);
-                    }
-                }
-            }
-            MyMessage::Fault { .. } => {
-                for i in 0..new_group.fault.len() {
-                    if new_group.fault[i].is_none() {
-                        new_group.fault[i] = Some(id);
-                        new_group.counter += 1;
-                        return Some(new_group);
-                    }
-                }
+        let (i, j) = match message {
+            MyMessage::Fault { .. } => (0, 2),
+            MyMessage::Fix { .. } => (2, 3),
+        };
+
+        for slot in &mut new_group.messages[i..j] {
+            if slot.is_none() {
+                *slot = Some(id);
+                new_group.counter += 1;
+                return Some(new_group);
             }
         }
         None
@@ -61,49 +52,37 @@ impl MatchGroup<MyMessage> for FaultFaultFix {
     }
 
     fn message_ids(&self) -> Vec<MessageId> {
-        let mut ids = Vec::new();
-        ids.extend(self.fault.iter().filter_map(|&x| x));
-        ids.extend(self.fix.iter().filter_map(|&x| x));
-        ids
+        self.messages.iter().filter_map(|x| *x).collect()
     }
 
     fn to_elements(&self) -> Vec<Element> {
         vec![
-            Element::new(self.fault[0].unwrap(), vec![0, 1]),
-            Element::new(self.fault[1].unwrap(), vec![0, 1]),
-            Element::new(self.fix[0].unwrap(), vec![2]),
+            Element::new(self.messages[0].unwrap(), vec![0, 1]),
+            Element::new(self.messages[1].unwrap(), vec![0, 1]),
+            Element::new(self.messages[2].unwrap(), vec![2]),
         ]
     }
 }
 
 #[derive(Default, Clone, Debug)]
 pub struct FaultFix {
-    fault: [Option<MessageId>; 1],
-    fix: [Option<MessageId>; 1],
+    messages: [Option<MessageId>; 2],
     counter: u8,
 }
 
 impl MatchGroup<MyMessage> for FaultFix {
     fn extend(&self, message: &MyMessage, id: MessageId) -> Option<Self> {
         let mut new_group = self.clone();
-        match message {
-            MyMessage::Fix { .. } => {
-                for i in 0..new_group.fix.len() {
-                    if new_group.fix[i].is_none() {
-                        new_group.fix[i] = Some(id);
-                        new_group.counter += 1;
-                        return Some(new_group);
-                    }
-                }
-            }
-            MyMessage::Fault { .. } => {
-                for i in 0..new_group.fault.len() {
-                    if new_group.fault[i].is_none() {
-                        new_group.fault[i] = Some(id);
-                        new_group.counter += 1;
-                        return Some(new_group);
-                    }
-                }
+        let (i, j) = match message {
+            MyMessage::Fault { .. } => (0, 1),
+            MyMessage::Fix { .. } => (1, 2),
+        };
+
+        for slot in &mut new_group.messages[i..j] {
+            if slot.is_none() {
+                *slot = Some(id);
+                new_group.counter += 1;
+                return Some(new_group);
             }
         }
         None
@@ -114,16 +93,13 @@ impl MatchGroup<MyMessage> for FaultFix {
     }
 
     fn message_ids(&self) -> Vec<MessageId> {
-        let mut ids = Vec::new();
-        ids.extend(self.fault.iter().filter_map(|&x| x));
-        ids.extend(self.fix.iter().filter_map(|&x| x));
-        ids
+        self.messages.iter().filter_map(|x| *x).collect()
     }
 
     fn to_elements(&self) -> Vec<Element> {
         vec![
-            Element::new(self.fault[0].unwrap(), vec![0]),
-            Element::new(self.fix[0].unwrap(), vec![1]),
+            Element::new(self.messages[0].unwrap(), vec![0]),
+            Element::new(self.messages[1].unwrap(), vec![1]),
         ]
     }
 }
@@ -221,7 +197,7 @@ fn run(messages: Vec<MyMessage>, expected_responses: Vec<Response>) {
 #[test]
 fn test_fault_fault_fix() {
     // Messages
-    let messages = vec![
+    let m = vec![
         MyMessage::fault(1, 1035),
         MyMessage::fault(2, 1039),
         MyMessage::fault(3, 1056),
@@ -231,16 +207,25 @@ fn test_fault_fault_fix() {
 
     // Output
     let expected = vec![
-        Response::new(
-            1,
-            vec![
-                MyMessage::fault(1, 1035),
-                MyMessage::fault(3, 1056),
-                MyMessage::fix(3),
-            ],
-        ),
-        Response::new(0, vec![MyMessage::fault(2, 1039), MyMessage::fix(2)]),
+        Response::new(1, vec![m[0], m[2], m[3]]),
+        Response::new(0, vec![m[1], m[4]]),
     ];
 
-    run(messages, expected);
+    run(m, expected);
+}
+
+#[test]
+fn test_fault_fix() {
+    // Messages
+    let m = vec![
+        MyMessage::fault(1, 1035),
+        MyMessage::fault(2, 1039),
+        MyMessage::fault(3, 1042),
+        MyMessage::fix(3),
+    ];
+
+    // Output
+    let expected = vec![Response::new(0, vec![m[2], m[3]])];
+
+    run(m, expected);
 }
