@@ -1,6 +1,6 @@
 use crate::Store;
 use crate::tree::Node;
-use crate::{BodyFn, GuardFn, MessageId, matchgroup::MatchGroup, message::Message};
+use crate::{BodyFn, GuardFn, Message, MessageId, matchgroup::MatchGroup};
 
 pub trait Pattern<M: Message, R> {
     fn consume(&mut self, message: &M, id: MessageId, store: &Store<M>) -> Option<Vec<MessageId>>;

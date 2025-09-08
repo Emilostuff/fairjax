@@ -1,9 +1,9 @@
-use fairjax::definition::{Definition, JoinDefinition};
-use fairjax::matchgroup::MatchGroup;
-use fairjax::message::Message;
-use fairjax::pattern::PatternMatcher;
-use fairjax::permute::Element;
-use fairjax::{BodyFn, GuardFn, MessageId};
+use fairjax_core::Message;
+use fairjax_core::definition::{Definition, JoinDefinition};
+use fairjax_core::matchgroup::MatchGroup;
+use fairjax_core::pattern::PatternMatcher;
+use fairjax_core::permute::Element;
+use fairjax_core::{BodyFn, GuardFn, MessageId};
 
 #[derive(Clone, Debug, Copy, PartialEq)]
 enum Msg {

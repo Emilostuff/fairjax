@@ -1,4 +1,4 @@
-use crate::{MessageId, Store, message::Message, pattern::Pattern};
+use crate::{Message, MessageId, Store, pattern::Pattern};
 use std::collections::HashMap;
 
 pub trait Definition<M: Message, R> {
