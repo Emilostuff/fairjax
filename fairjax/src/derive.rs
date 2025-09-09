@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::DeriveInput;
 
-pub fn derive_message_trait(input: &DeriveInput) -> TokenStream {
+pub fn expand_derive_message_trait(input: &DeriveInput) -> TokenStream {
     let name = input.ident.clone();
 
     quote! {
@@ -23,7 +23,7 @@ mod tests {
             }
         };
 
-        let output = derive_message_trait(&input);
+        let output = expand_derive_message_trait(&input);
         let expected = quote! {
             impl fairjax_core::Message for TestMessage {}
         };
