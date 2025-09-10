@@ -23,7 +23,7 @@ fn main() {
             },
             (Shutdown()) => {
                 Stop
-            }
+            },
         });
     }
 }
