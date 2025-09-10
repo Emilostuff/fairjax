@@ -1,5 +1,5 @@
 mod case;
-mod consume;
+mod definition;
 mod derive;
 mod utils;
 
@@ -14,21 +14,8 @@ pub fn derive_message_trait(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn match_fairest_case(input: TokenStream) -> TokenStream {
-    consume::expand_consume(input.into())
-        .map(|_| TokenStream::new())
-        .unwrap_or_else(|e| e.to_compile_error().into())
-}
-
-#[proc_macro]
-pub fn receive(input: TokenStream) -> TokenStream {
-    consume::expand_consume(input.into())
-        .map(|_| TokenStream::new())
-        .unwrap_or_else(|e| e.to_compile_error().into())
-}
-
-#[proc_macro]
-pub fn case(input: TokenStream) -> TokenStream {
-    case::expand_case(input.into())
-        .map(|_| TokenStream::new())
-        .unwrap_or_else(|e| e.to_compile_error().into())
+    match definition::JoinDefinition::parse(input.into()) {
+        Ok(def) => def.generate().into(),
+        Err(e) => return e.to_compile_error().into(),
+    }
 }

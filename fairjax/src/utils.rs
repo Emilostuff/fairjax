@@ -82,7 +82,7 @@ mod tests2 {
     }
 }
 
-pub fn split_by_double_ampersand(input: TokenStream) -> Vec<TokenStream> {
+pub fn split_by_double_char(input: TokenStream, ch: char) -> Vec<TokenStream> {
     let mut output = Vec::new();
     let mut iter = input.clone().into_iter().peekable();
 
@@ -90,8 +90,8 @@ pub fn split_by_double_ampersand(input: TokenStream) -> Vec<TokenStream> {
         let mut substream = Vec::new();
         while let Some(tt) = iter.next() {
             match tt {
-                TokenTree::Punct(ref c) if c.as_char() == '&' => match iter.peek() {
-                    Some(TokenTree::Punct(c)) if c.as_char() == '&' => {
+                TokenTree::Punct(ref c) if c.as_char() == ch => match iter.peek() {
+                    Some(TokenTree::Punct(c)) if c.as_char() == ch => {
                         iter.next();
                         break;
                     }
@@ -121,7 +121,7 @@ mod tests {
         let input = quote!(A && B);
         let expected = vec![quote!(A), quote!(B)];
 
-        let output = split_by_double_ampersand(input.into());
+        let output = split_by_double_char(input.into(), '&');
 
         assert_eq!(expected.len(), output.len());
         for (exp, out) in expected.iter().zip(output.iter()) {
