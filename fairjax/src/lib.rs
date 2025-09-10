@@ -1,6 +1,7 @@
 mod case;
 mod consume;
 mod derive;
+mod utils;
 
 use proc_macro::TokenStream;
 use syn::{DeriveInput, parse_macro_input};
