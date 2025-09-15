@@ -8,7 +8,8 @@ enum Msg {
     C(u8, u8),
 }
 
-fn declaration() {
+#[test]
+fn test_use() {
     use Msg::*;
     let mut mailbox: MailBox<Msg, ()> = MailBox::new();
 
@@ -19,18 +20,17 @@ fn declaration() {
                 A(x) && B(y),
                 x >= y,
                 {
-                    println!("found pattern!");
+                    println!("{} >= {}", x, y);
                 }
             ),
             case(
                 B(x1) && B(x2) && C(y1, y2),
                 x1 == y1 && x2 == y2,
                 {
+                    println!("{} == {} && {} == {}", x1, x2, y1, y2);
                     println!("found pattern!");
                 }
             )
         }
     }
 }
-
-fn main() {}

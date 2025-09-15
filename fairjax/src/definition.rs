@@ -83,8 +83,13 @@ impl JoinDefinition {
         let match_index_var = quote!(fairest_match_index);
 
         let action_code = self.generate_action_code(match_index_var.clone(), input_var.clone());
+        let msg = self.message;
 
-        TokenStream::new()
+        quote! {
+            let #input_var = [#msg, #msg.clone(), #msg.clone()];
+            let #match_index_var = None;
+            #action_code
+        }
     }
 
     pub fn generate_action_code(
