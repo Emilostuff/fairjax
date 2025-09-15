@@ -173,7 +173,10 @@ fn get_join_definition() -> MailBox<Msg, Response> {
     let faultfix = PatternMatcher::<FaultFix, Msg, Response>::new(faultfix_guard, faultfix_body);
 
     // Return join definition
-    MailBox::new(vec![Box::new(faultfix), Box::new(faultfaultfix)])
+    let mut mailbox = MailBox::new();
+    mailbox.add_pattern(Box::new(faultfix));
+    mailbox.add_pattern(Box::new(faultfaultfix));
+    mailbox
 }
 
 fn run(messages: Vec<Msg>, expected_responses: Vec<Response>) {

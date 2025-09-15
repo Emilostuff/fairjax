@@ -13,12 +13,12 @@ pub struct MailBox<M: Message, R> {
 }
 
 impl<M: Message, R> MailBox<M, R> {
-    pub fn new(patterns: Vec<Box<dyn Pattern<M, R>>>) -> Self {
+    pub fn new() -> Self {
         MailBox {
             store: HashMap::new(),
             init: false,
             id_counter: 0,
-            patterns,
+            patterns: Vec::new(),
         }
     }
 
