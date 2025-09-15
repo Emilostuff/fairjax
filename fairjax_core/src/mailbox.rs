@@ -5,16 +5,18 @@ pub trait Definition<M: Message, R> {
     fn consume(&mut self, message: M) -> Option<R>;
 }
 
-pub struct JoinDefinition<M: Message, R> {
+pub struct MailBox<M: Message, R> {
     store: Store<M>,
+    init: bool,
     id_counter: usize,
     patterns: Vec<Box<dyn Pattern<M, R>>>,
 }
 
-impl<M: Message, R> JoinDefinition<M, R> {
+impl<M: Message, R> MailBox<M, R> {
     pub fn new(patterns: Vec<Box<dyn Pattern<M, R>>>) -> Self {
-        JoinDefinition {
+        MailBox {
             store: HashMap::new(),
+            init: false,
             id_counter: 0,
             patterns,
         }
@@ -49,9 +51,29 @@ impl<M: Message, R> JoinDefinition<M, R> {
         matches.sort_by(|a, b| a.1.cmp(&b.1));
         matches.first().map(|e| e.0)
     }
+
+    pub fn is_initialized(&self) -> bool {
+        self.init
+    }
+
+    pub fn is_modified(&self) -> bool {
+        !self.patterns.is_empty() || !self.store.is_empty()
+    }
+
+    pub fn init(&mut self) {
+        self.init = true;
+    }
+
+    pub fn add_pattern(&mut self, pattern: Box<dyn Pattern<M, R>>) {
+        if !self.init {
+            self.patterns.push(pattern);
+        } else {
+            panic!("Mailbox must not be modifed");
+        }
+    }
 }
 
-impl<M: Message, R> Definition<M, R> for JoinDefinition<M, R> {
+impl<M: Message, R> Definition<M, R> for MailBox<M, R> {
     fn consume(&mut self, message: M) -> Option<R> {
         // Generate new id for incoming message
         let id = self.create_id();

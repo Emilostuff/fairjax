@@ -1,5 +1,5 @@
 use fairjax_core::Message;
-use fairjax_core::definition::{Definition, JoinDefinition};
+use fairjax_core::mailbox::{Definition, MailBox};
 use fairjax_core::matchgroup::MatchGroup;
 use fairjax_core::pattern::PatternMatcher;
 use fairjax_core::permute::Element;
@@ -119,7 +119,7 @@ impl Response {
     }
 }
 
-fn get_join_definition() -> JoinDefinition<Msg, Response> {
+fn get_join_definition() -> MailBox<Msg, Response> {
     // Guards
     let faultfaultfix_guard: GuardFn<Msg> =
         Box::new(
@@ -173,7 +173,7 @@ fn get_join_definition() -> JoinDefinition<Msg, Response> {
     let faultfix = PatternMatcher::<FaultFix, Msg, Response>::new(faultfix_guard, faultfix_body);
 
     // Return join definition
-    JoinDefinition::new(vec![Box::new(faultfix), Box::new(faultfaultfix)])
+    MailBox::new(vec![Box::new(faultfix), Box::new(faultfaultfix)])
 }
 
 fn run(messages: Vec<Msg>, expected_responses: Vec<Response>) {

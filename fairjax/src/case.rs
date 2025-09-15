@@ -1,5 +1,6 @@
 use crate::utils::{split_by_comma, split_by_double_char};
 use proc_macro2::{Span, TokenStream};
+use quote::quote;
 use syn::{Error, Result};
 
 #[derive(Debug)]
@@ -9,7 +10,16 @@ pub struct Case {
     body: TokenStream,
 }
 
+// Input Parsing
 impl Case {
+    pub fn new(pattern: Vec<TokenStream>, guard: TokenStream, body: TokenStream) -> Self {
+        Case {
+            pattern,
+            guard,
+            body,
+        }
+    }
+
     pub fn parse(input: TokenStream) -> Result<Self> {
         let args = split_by_comma(input);
 
@@ -35,26 +45,10 @@ impl Case {
 }
 
 #[cfg(test)]
-mod tests {
+mod parse_tests {
     use super::*;
+    use crate::utils::{compare_lists_of_token_streams, compare_token_streams};
     use quote::quote;
-
-    fn compare_token_streams(input: (&TokenStream, &TokenStream)) {
-        assert_eq!(input.0.to_string(), input.1.to_string());
-    }
-
-    fn compare_cases(a: &Case, b: &Case) {
-        assert_eq!(a.pattern.len(), b.pattern.len(),);
-
-        let _ = a
-            .pattern
-            .iter()
-            .zip(b.pattern.iter())
-            .map(compare_token_streams);
-
-        compare_token_streams((&a.guard, &b.guard));
-        compare_token_streams((&a.body, &b.body));
-    }
 
     #[test]
     fn test_expand_case() {
@@ -75,6 +69,101 @@ mod tests {
         };
 
         let output = Case::parse(input).unwrap();
-        compare_cases(&expected, &output);
+        compare_lists_of_token_streams(&expected.pattern, &output.pattern);
+
+        compare_token_streams(&expected.guard, &output.guard);
+        compare_token_streams(&expected.body, &output.body);
+    }
+}
+
+// Code Generation
+impl Case {
+    pub fn generate_action_code(&self, input_var: TokenStream) -> TokenStream {
+        let pattern = self.generate_pattern_match_code();
+        let body = &self.body;
+        let unpacking = self.generate_input_unpacking_code(input_var.clone());
+
+        quote! {
+            match (#unpacking) {
+                (#pattern) => {
+                    #body
+                },
+                _ => panic!("not good")
+            }
+        }
+    }
+
+    fn generate_pattern_match_code(&self) -> TokenStream {
+        let pattern = &self.pattern;
+        quote! {
+            #(#pattern),*
+        }
+    }
+
+    fn generate_input_unpacking_code(&self, input_var: TokenStream) -> TokenStream {
+        let indices = 0..self.pattern.len();
+        quote! {
+            #(#input_var[#indices]),*
+        }
+    }
+}
+
+#[cfg(test)]
+mod code_gen_tests {
+    use super::*;
+    use crate::utils::compare_token_streams;
+    use quote::quote;
+
+    #[test]
+    fn test_generate_input_unpacking_code() {
+        let case = Case {
+            pattern: vec![quote!(), quote!(), quote!()],
+            guard: quote!(),
+            body: quote!(),
+        };
+        let input_var = quote!(input);
+
+        let output = case.generate_input_unpacking_code(input_var);
+        let expected = quote!(input[0usize], input[1usize], input[2usize]);
+
+        compare_token_streams(&expected, &output);
+    }
+
+    #[test]
+    fn test_generate_pattern_match_code() {
+        let case = Case {
+            pattern: vec![quote!(A(a, b)), quote!(B(_, c)), quote!(C(d))],
+            guard: quote!(),
+            body: quote!(),
+        };
+
+        let output = case.generate_pattern_match_code();
+        let expected = quote!(A(a, b), B(_, c), C(d));
+
+        compare_token_streams(&expected, &output);
+    }
+
+    #[test]
+    fn test_generate_action_code() {
+        let case = Case {
+            pattern: vec![quote!(A(a, b)), quote!(B(_, c)), quote!(C(d))],
+            guard: quote!(),
+            body: quote! {
+                println!("Success");
+            },
+        };
+
+        let input_var = quote!(input);
+        let output = case.generate_action_code(input_var);
+        let expected = quote! {
+            match (input[0usize], input[1usize], input[2usize]) {
+                (A(a, b), B(_, c), C(d)) => {
+                    println!("Success");
+                },
+                _ => panic!("not good")
+            }
+        };
+
+        compare_token_streams(&expected, &output);
     }
 }

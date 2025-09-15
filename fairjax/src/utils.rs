@@ -26,7 +26,7 @@ pub fn split_by_comma(input: TokenStream) -> Vec<TokenStream> {
 }
 
 #[cfg(test)]
-mod tests2 {
+mod split_by_comma_tests {
     use super::*;
     use quote::quote;
 
@@ -112,7 +112,7 @@ pub fn split_by_double_char(input: TokenStream, ch: char) -> Vec<TokenStream> {
 }
 
 #[cfg(test)]
-mod tests {
+mod split_by_double_char_tests {
     use super::*;
     use quote::quote;
 
@@ -154,4 +154,15 @@ mod tests {
     //         assert_eq!(exp.to_string(), out.to_string());
     //     }
     // }
+}
+
+pub fn compare_token_streams(a: &TokenStream, b: &TokenStream) {
+    assert_eq!(a.to_string(), b.to_string());
+}
+
+pub fn compare_lists_of_token_streams(a: &[TokenStream], b: &[TokenStream]) {
+    assert_eq!(a.len(), b.len());
+    for (exp, out) in a.iter().zip(b.iter()) {
+        assert_eq!(exp.to_string(), out.to_string());
+    }
 }

@@ -1,4 +1,4 @@
-pub mod definition;
+pub mod mailbox;
 pub mod matchgroup;
 pub mod pattern;
 pub mod permute;
