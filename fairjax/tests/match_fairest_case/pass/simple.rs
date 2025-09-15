@@ -14,6 +14,7 @@ fn declaration() {
 
     for msg in [A(10), B(5)] {
         match_fairest_case! {
+            Msg,
             msg >> mailbox,
             case(
                 A(x) && B(y),

@@ -6,6 +6,7 @@ use syn::spanned::Spanned;
 use syn::{Error, Result};
 
 pub struct JoinDefinition {
+    message_type: TokenStream,
     mailbox: TokenStream,
     message: TokenStream,
     cases: Vec<Case>,
@@ -15,11 +16,13 @@ pub struct JoinDefinition {
 impl JoinDefinition {
     pub fn parse(input: TokenStream) -> Result<Self> {
         let args = split_by_comma(input);
-        if args.len() < 2 {
+        if args.len() < 3 {
             return Err(Error::new(Span::call_site(), "Expected at least one case"));
         }
 
         let mut args = args.into_iter();
+
+        let message_type = args.next().unwrap();
 
         let mailbox_message_specifier = split_by_double_char(args.next().unwrap(), '>');
         if mailbox_message_specifier.len() != 2 {
@@ -39,6 +42,7 @@ impl JoinDefinition {
 
         // Return join defenition
         Ok(JoinDefinition {
+            message_type,
             mailbox,
             message,
             cases,
@@ -140,6 +144,7 @@ mod code_gen_tests {
         );
 
         let join_def = JoinDefinition {
+            message_type: quote!(),
             mailbox: quote!(),
             message: quote!(),
             cases: vec![case_0, case_1],
