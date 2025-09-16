@@ -8,8 +8,7 @@ pub type MessageId = usize;
 
 pub type Store<M> = std::collections::HashMap<MessageId, M>;
 
-pub type GuardFn<M> = Box<dyn Fn(&Vec<&M>) -> bool>;
-pub type BodyFn<M, R> = Box<dyn Fn(&Vec<&M>) -> Option<R>>;
+pub type GuardFn<M> = fn(&Vec<&M>) -> bool;
 
 pub trait Message: Clone + std::fmt::Debug {}
 

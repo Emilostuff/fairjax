@@ -1,18 +1,14 @@
 use crate::{Message, MessageId, Store, pattern::Pattern};
 use std::collections::HashMap;
 
-pub trait Definition<M: Message, R> {
-    fn consume(&mut self, message: M) -> Option<R>;
-}
-
-pub struct MailBox<M: Message, R> {
+pub struct MailBox<M: Message> {
     store: Store<M>,
     init: bool,
     id_counter: usize,
-    patterns: Vec<Box<dyn Pattern<M, R>>>,
+    patterns: Vec<Box<dyn Pattern<M>>>,
 }
 
-impl<M: Message, R> MailBox<M, R> {
+impl<M: Message> MailBox<M> {
     pub fn new() -> Self {
         MailBox {
             store: HashMap::new(),
@@ -64,17 +60,15 @@ impl<M: Message, R> MailBox<M, R> {
         self.init = true;
     }
 
-    pub fn add_pattern(&mut self, pattern: Box<dyn Pattern<M, R>>) {
+    pub fn add_pattern(&mut self, pattern: Box<dyn Pattern<M>>) {
         if !self.init {
             self.patterns.push(pattern);
         } else {
             panic!("Mailbox must not be modifed");
         }
     }
-}
 
-impl<M: Message, R> Definition<M, R> for MailBox<M, R> {
-    fn consume(&mut self, message: M) -> Option<R> {
+    pub fn consume(&mut self, message: M) -> Option<(usize, Vec<M>)> {
         // Generate new id for incoming message
         let id = self.create_id();
 
@@ -90,22 +84,24 @@ impl<M: Message, R> Definition<M, R> for MailBox<M, R> {
 
         // Find fairest match across patterns
         let fairest_match = Self::get_fairest_match(&matches)?;
-        let matched_messages = matches[fairest_match].as_ref().unwrap();
+        let matched_message_ids = matches[fairest_match].as_ref().unwrap();
 
-        // Execute body in matched pattern
-        println!("Executing pattern {fairest_match}");
-        let response = self.patterns[fairest_match].execute(&matched_messages, &self.store);
+        // Extract actual messages
+        let matched_messages: Vec<M> = matched_message_ids
+            .iter()
+            .map(|id| self.store[id].clone())
+            .collect();
 
         // Remove messages from store
-        for id in matched_messages {
+        for id in matched_message_ids {
             self.store.remove(&id);
         }
 
         // remove messages from each pattern
         for pattern in &mut self.patterns {
-            pattern.remove(&matched_messages);
+            pattern.remove(&matched_message_ids);
         }
 
-        response
+        Some((fairest_match, matched_messages))
     }
 }

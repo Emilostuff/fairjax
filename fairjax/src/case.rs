@@ -1,40 +1,38 @@
-use crate::utils::{split_by_comma, split_by_double_char};
-use proc_macro2::{Span, TokenStream};
-use quote::quote;
+use crate::pattern::Pattern;
+use crate::utils::split_by_char;
+use proc_macro2::{Ident, Span, TokenStream};
+use quote::{format_ident, quote};
 use syn::{Error, Result};
 
 #[derive(Debug)]
 pub struct Case {
-    pattern: Vec<TokenStream>,
+    pattern: Pattern,
     guard: TokenStream,
     body: TokenStream,
 }
 
 // Input Parsing
 impl Case {
-    pub fn new(pattern: Vec<TokenStream>, guard: TokenStream, body: TokenStream) -> Self {
-        Case {
-            pattern,
+    pub fn new(pattern: TokenStream, guard: TokenStream, body: TokenStream) -> Result<Self> {
+        Ok(Case {
+            pattern: Pattern::parse(pattern)?,
             guard,
             body,
-        }
+        })
     }
 
     pub fn parse(input: TokenStream) -> Result<Self> {
-        let args = split_by_comma(input);
+        let args = split_by_char(input, ',');
 
         // Check number of args is correct
         if args.len() != 3 {
             return Err(Error::new(Span::call_site(), "Expected 3 arguments"));
         }
 
-        // Unpack split
-        let pattern = args[0].clone();
+        // Unpack split and parse
+        let pattern = Pattern::parse(args[0].clone())?;
         let guard = args[1].clone();
         let body = args[2].clone();
-
-        // Check match arm is well-formed i.e. separated by '&&'s
-        let pattern = split_by_double_char(pattern, '&');
 
         Ok(Case {
             pattern,
@@ -47,7 +45,7 @@ impl Case {
 #[cfg(test)]
 mod parse_tests {
     use super::*;
-    use crate::utils::{compare_lists_of_token_streams, compare_token_streams};
+    use crate::utils::compare_token_streams;
     use quote::quote;
 
     #[test]
@@ -61,7 +59,7 @@ mod parse_tests {
         };
 
         let expected = Case {
-            pattern: vec![quote!(A(a, b)), quote!(B(_, c)), quote!(C(d))],
+            pattern: Pattern::parse(quote!(A(a, b) && B(_, c) && C(d))).unwrap(),
             guard: quote!(a == d),
             body: quote!({
                 f(b, c);
@@ -69,7 +67,10 @@ mod parse_tests {
         };
 
         let output = Case::parse(input).unwrap();
-        compare_lists_of_token_streams(&expected.pattern, &output.pattern);
+        compare_token_streams(
+            &expected.pattern.generate_full_pattern(),
+            &output.pattern.generate_full_pattern(),
+        );
 
         compare_token_streams(&expected.guard, &output.guard);
         compare_token_streams(&expected.body, &output.body);
@@ -94,16 +95,56 @@ impl Case {
     }
 
     fn generate_pattern_match_code(&self) -> TokenStream {
-        let pattern = &self.pattern;
-        quote! {
-            #(#pattern),*
-        }
+        self.pattern.generate_full_pattern()
     }
 
     fn generate_input_unpacking_code(&self, input_var: TokenStream) -> TokenStream {
         let indices = 0..self.pattern.len();
         quote! {
             #(#input_var[#indices]),*
+        }
+    }
+
+    fn generate_guard_fn(&self, guard_ident: Ident) -> TokenStream {
+        let unpacking = self.generate_input_unpacking_code(quote!(messages));
+        let pattern = self.pattern.generate_full_pattern();
+        let guard = self.guard.clone();
+        quote! {
+            fn #guard_ident(messages: &Vec<&Msg>) -> bool {
+                match (#unpacking) {
+                    (#pattern) => #guard,
+                    _ => unreachable!(),
+                }
+            }
+        }
+    }
+
+    pub fn generate_declaration_code(
+        &self,
+        message_type: TokenStream,
+        case_index: usize,
+        mailbox_ident: TokenStream,
+    ) -> TokenStream {
+        let match_group_ident = format_ident!("FairjaxGenerated{}", case_index);
+        let guard_ident = format_ident!("fairjax_pattern_guard_{}", case_index);
+
+        let declaration_code = self
+            .pattern
+            .generate_declaration_code(message_type.clone(), match_group_ident.clone());
+        let guard_code = self.generate_guard_fn(guard_ident.clone());
+
+        quote! {
+            // Generate match group impl
+            #declaration_code
+
+            // Declare guard
+            #guard_code
+
+            // Generate pattern matcher
+            let pm = fairjax_core::pattern::PatternMatcher::<#match_group_ident, #message_type>::new(#guard_ident);
+
+            // Add to mailbox
+            #mailbox_ident.add_pattern(Box::new(pm));
         }
     }
 }
@@ -117,7 +158,7 @@ mod code_gen_tests {
     #[test]
     fn test_generate_input_unpacking_code() {
         let case = Case {
-            pattern: vec![quote!(), quote!(), quote!()],
+            pattern: Pattern::parse(quote!(A && B && C)).unwrap(),
             guard: quote!(),
             body: quote!(),
         };
@@ -132,7 +173,7 @@ mod code_gen_tests {
     #[test]
     fn test_generate_pattern_match_code() {
         let case = Case {
-            pattern: vec![quote!(A(a, b)), quote!(B(_, c)), quote!(C(d))],
+            pattern: Pattern::parse(quote!(A(a, b) && B(_, c) && C(d))).unwrap(),
             guard: quote!(),
             body: quote!(),
         };
@@ -146,7 +187,7 @@ mod code_gen_tests {
     #[test]
     fn test_generate_action_code() {
         let case = Case {
-            pattern: vec![quote!(A(a, b)), quote!(B(_, c)), quote!(C(d))],
+            pattern: Pattern::parse(quote!(A(a, b) && B(_, c) && C(d))).unwrap(),
             guard: quote!(),
             body: quote! {
                 println!("Success");

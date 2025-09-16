@@ -1,9 +1,9 @@
 use fairjax_core::Message;
-use fairjax_core::mailbox::{Definition, MailBox};
+use fairjax_core::mailbox::MailBox;
 use fairjax_core::matchgroup::MatchGroup;
 use fairjax_core::pattern::PatternMatcher;
 use fairjax_core::permute::Element;
-use fairjax_core::{BodyFn, GuardFn, MessageId};
+use fairjax_core::{GuardFn, MessageId};
 
 #[derive(Clone, Debug, Copy, PartialEq)]
 enum Msg {
@@ -104,43 +104,27 @@ impl MatchGroup<Msg> for FaultFix {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-struct Response {
-    pattern_id: usize,
-    matched_messages: Vec<Msg>,
-}
-
-impl Response {
-    fn new(pattern_id: usize, matched_messages: Vec<Msg>) -> Self {
-        Response {
-            pattern_id,
-            matched_messages,
+fn get_join_definition() -> MailBox<Msg> {
+    // Guards
+    fn faultfaultfix_guard(messages: &Vec<&Msg>) -> bool {
+        match (messages[0], messages[1], messages[2]) {
+            (
+                Msg::Fault {
+                    id: _,
+                    timestamp: ts1,
+                },
+                Msg::Fault {
+                    id: fid2,
+                    timestamp: ts2,
+                },
+                Msg::Fix { id: fid3 },
+            ) => fid2 == fid3 && *ts2 > *ts1 + 10,
+            _ => unreachable!(),
         }
     }
-}
 
-fn get_join_definition() -> MailBox<Msg, Response> {
-    // Guards
-    let faultfaultfix_guard: GuardFn<Msg> =
-        Box::new(
-            |messages: &Vec<&Msg>| match (messages[0], messages[1], messages[2]) {
-                (
-                    Msg::Fault {
-                        id: _,
-                        timestamp: ts1,
-                    },
-                    Msg::Fault {
-                        id: fid2,
-                        timestamp: ts2,
-                    },
-                    Msg::Fix { id: fid3 },
-                ) => fid2 == fid3 && *ts2 > *ts1 + 10,
-                _ => unreachable!(),
-            },
-        );
-
-    let faultfix_guard: GuardFn<Msg> =
-        Box::new(|messages: &Vec<&Msg>| match (messages[0], messages[1]) {
+    fn faultfix_guard(messages: &Vec<&Msg>) -> bool {
+        match (messages[0], messages[1]) {
             (
                 Msg::Fault {
                     id: fid1,
@@ -149,28 +133,12 @@ fn get_join_definition() -> MailBox<Msg, Response> {
                 Msg::Fix { id: fid2 },
             ) => fid1 == fid2,
             _ => unreachable!(),
-        });
-
-    // Bodies
-    let faultfix_body: BodyFn<Msg, Response> = Box::new(|msg: &Vec<&Msg>| {
-        Some(Response {
-            pattern_id: 0,
-            matched_messages: msg.iter().map(|m| *m.to_owned()).collect(),
-        })
-    });
-    let faultfaultfix_body: BodyFn<Msg, Response> = Box::new(|msg: &Vec<&Msg>| {
-        Some(Response {
-            pattern_id: 1,
-            matched_messages: msg.iter().map(|m| *m.to_owned()).collect(),
-        })
-    });
+        }
+    }
 
     // Create patterns
-    let faultfaultfix = PatternMatcher::<FaultFaultFix, Msg, Response>::new(
-        faultfaultfix_guard,
-        faultfaultfix_body,
-    );
-    let faultfix = PatternMatcher::<FaultFix, Msg, Response>::new(faultfix_guard, faultfix_body);
+    let faultfaultfix = PatternMatcher::<FaultFaultFix, Msg>::new(faultfaultfix_guard);
+    let faultfix = PatternMatcher::<FaultFix, Msg>::new(faultfix_guard);
 
     // Return join definition
     let mut mailbox = MailBox::new();
@@ -179,13 +147,13 @@ fn get_join_definition() -> MailBox<Msg, Response> {
     mailbox
 }
 
-fn run(messages: Vec<Msg>, expected_responses: Vec<Response>) {
+fn run(messages: Vec<Msg>, expected_responses: Vec<(usize, Vec<Msg>)>) {
     let mut def = get_join_definition();
     let mut output = Vec::new();
 
     for message in messages {
-        if let Some(response) = def.consume(message) {
-            output.push(response);
+        if let Some(res) = def.consume(message) {
+            output.push(res);
         }
     }
 
@@ -206,10 +174,7 @@ fn test_fault_fault_fix() {
     ];
 
     // Output
-    let expected = vec![
-        Response::new(1, vec![m[0], m[2], m[3]]),
-        Response::new(0, vec![m[1], m[4]]),
-    ];
+    let expected = vec![(1, vec![m[0], m[2], m[3]]), (0, vec![m[1], m[4]])];
 
     run(m, expected);
 }
@@ -225,7 +190,7 @@ fn test_fault_fix() {
     ];
 
     // Output
-    let expected = vec![Response::new(0, vec![m[2], m[3]])];
+    let expected = vec![(0, vec![m[2], m[3]])];
 
     run(m, expected);
 }

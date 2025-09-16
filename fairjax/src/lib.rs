@@ -1,6 +1,7 @@
 mod case;
 mod definition;
 mod derive;
+mod pattern;
 mod utils;
 
 use proc_macro::TokenStream;

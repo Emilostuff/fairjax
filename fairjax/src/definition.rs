@@ -1,4 +1,4 @@
-use crate::utils::split_by_comma;
+use crate::utils::split_by_char;
 use crate::{case::Case, utils::split_by_double_char};
 use proc_macro2::{Delimiter, Span, TokenStream, TokenTree};
 use quote::quote;
@@ -15,7 +15,7 @@ pub struct JoinDefinition {
 // Input Parsing
 impl JoinDefinition {
     pub fn parse(input: TokenStream) -> Result<Self> {
-        let args = split_by_comma(input);
+        let args = split_by_char(input, ',');
         if args.len() < 3 {
             return Err(Error::new(Span::call_site(), "Expected at least one case"));
         }
@@ -83,13 +83,27 @@ mod parse_tests {
 impl JoinDefinition {
     pub fn generate(self) -> TokenStream {
         // Init mailbox if not done
+        let mailbox_ident = self.mailbox.clone();
         let input_var = quote!(input);
         let match_index_var = quote!(fairest_match_index);
 
         let action_code = self.generate_action_code(match_index_var.clone(), input_var.clone());
+        let declaration_code = self.generate_declaration_code();
         let msg = self.message;
 
         quote! {
+            // Run init once
+            if !#mailbox_ident.is_initialized() {
+                // Check if user modified mailbox
+                if #mailbox_ident.is_modified() {
+                    panic!("Mailbox was modified prior to initialization");
+                }
+                #declaration_code
+
+                // finalize init
+                #mailbox_ident.init();
+            }
+
             let #input_var = [#msg, #msg.clone(), #msg.clone()];
             let #match_index_var = None;
             #action_code
@@ -116,6 +130,21 @@ impl JoinDefinition {
             }
         }
     }
+
+    pub fn generate_declaration_code(&self) -> TokenStream {
+        let declarations = self
+            .cases
+            .iter()
+            .enumerate()
+            .map(|(i, c)| {
+                c.generate_declaration_code(self.message_type.clone(), i, self.mailbox.clone())
+            })
+            .collect::<Vec<TokenStream>>();
+
+        quote! {
+            #(#declarations)*
+        }
+    }
 }
 
 #[cfg(test)]
@@ -128,20 +157,22 @@ mod code_gen_tests {
     #[test]
     fn test_generate_action_code() {
         let case_0 = Case::new(
-            vec![quote!(A(a, b)), quote!(B(_, c)), quote!(C(d))],
+            quote!(A(a, b) && B(_, c) && C(d)),
             quote!(),
             quote! {
                 println!("Success");
             },
-        );
+        )
+        .unwrap();
 
         let case_1 = Case::new(
-            vec![quote!(E(k, _)), quote!(C(d))],
+            quote!(E(k, _) && C(d)),
             quote!(),
             quote! {
                 println!("More Success");
             },
-        );
+        )
+        .unwrap();
 
         let join_def = JoinDefinition {
             message_type: quote!(),

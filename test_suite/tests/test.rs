@@ -11,7 +11,7 @@ enum Msg {
 #[test]
 fn test_use() {
     use Msg::*;
-    let mut mailbox: MailBox<Msg, ()> = MailBox::new();
+    let mut mailbox: MailBox<Msg> = MailBox::new();
 
     for msg in [A(10), B(5)] {
         match_fairest_case!(
