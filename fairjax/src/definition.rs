@@ -103,7 +103,7 @@ impl JoinDefinition {
                 #mailbox_ident.init();
             }
 
-            let #match_result = #mailbox_ident.consume(#msg);
+            let #match_result = #mailbox_ident.consume(#msg.clone());
 
             // Run action if match was found
             #action_code
