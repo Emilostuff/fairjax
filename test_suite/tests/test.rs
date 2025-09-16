@@ -51,7 +51,7 @@ fn run_test(messages: &[Msg]) -> Vec<Match> {
                     messages: vec![C(x1, x2), C(y1, y2)],
                 });
             }),
-            case(A(x), x > &100, {
+            case(A(x), *x > 100, {
                 output.push(Match {
                     pattern_no: 3,
                     messages: vec![A(x)],

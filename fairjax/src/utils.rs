@@ -1,5 +1,4 @@
 use proc_macro2::{Group, TokenStream, TokenTree};
-use quote::quote;
 
 pub fn split_by_char(input: TokenStream, ch: char) -> Vec<TokenStream> {
     let mut output = Vec::new();
@@ -211,21 +210,12 @@ pub fn parse_identifier(input: &TokenStream, allow_tail: bool) -> syn::Result<pr
         Some(TokenTree::Ident(ident)) => match iter.peek() {
             None => Ok(ident),
             Some(_) if allow_tail => Ok(ident),
-            Some(_) => {
-                let tail = iter.collect::<TokenStream>();
-                Err(syn::Error::new_spanned(
-                    tail.clone(),
-                    format!(
-                        "Unexpected tokens: '{}' after identifier: '{}'",
-                        tail, ident
-                    ),
-                ))
-            }
+            Some(_) => Err(syn::Error::new_spanned(
+                iter.collect::<TokenStream>(),
+                format!("Unexpected tokens after identifier: '{}'", ident),
+            )),
         },
-        _ => Err(syn::Error::new_spanned(
-            input,
-            format!("Expected identifier, got: '{}'", input),
-        )),
+        _ => Err(syn::Error::new_spanned(input, "Expected identifier here")),
     }
 }
 

@@ -69,9 +69,9 @@ impl JoinDefinition {
     }
 
     fn extract_case(input: TokenStream) -> Result<TokenStream> {
-        let mut iter = input.into_iter();
-        match iter.next() {
-            Some(TokenTree::Ident(ident)) if ident == "case" => (),
+        let mut iter = input.into_iter().peekable();
+        let case_ident = match iter.next() {
+            Some(TokenTree::Ident(ident)) if ident == "case" => ident,
             Some(tt) => return Err(Error::new_spanned(tt, "Expected 'case' keyword here")),
             None => {
                 return Err(Error::new(
@@ -81,15 +81,29 @@ impl JoinDefinition {
             }
         };
 
-        match iter.next() {
+        match iter.peek().map(|x| x.clone()) {
             Some(TokenTree::Group(g)) if g.delimiter() == Delimiter::Parenthesis => {
-                if iter.next().is_none() {
-                    return Ok(g.stream());
-                } else {
-                    return Err(Error::new(Span::call_site(), "Too many things"));
+                iter.next();
+                match iter.peek() {
+                    Some(_) => {
+                        return Err(syn::Error::new_spanned(
+                            iter.collect::<TokenStream>(),
+                            "Unexpected tokens after 'case( .. )'",
+                        ));
+                    }
+                    None => return Ok(g.stream()),
                 }
             }
-            _ => return Err(Error::new(Span::call_site(), "Expected ()")),
+            Some(_) => {
+                return Err(syn::Error::new_spanned(
+                    iter.collect::<TokenStream>(),
+                    "Expected ()-group after 'case' keyword",
+                ));
+            }
+            None => Err(syn::Error::new_spanned(
+                case_ident,
+                "Expected ()-group after 'case' keyword",
+            )),
         }
     }
 }

@@ -1,7 +1,8 @@
 use crate::pattern::Pattern;
 use crate::utils::split_by_char;
-use proc_macro2::{Ident, Span, TokenStream};
-use quote::{format_ident, quote};
+use proc_macro2::{Ident, TokenStream};
+use quote::{format_ident, quote, quote_spanned};
+use syn::spanned::Spanned;
 use syn::{Error, Result};
 
 #[derive(Debug)]
@@ -109,7 +110,9 @@ impl Case {
         let unpacking = self.generate_input_unpacking_code(quote!(messages));
         let pattern = self.pattern.generate_full_pattern();
         let guard = self.guard.clone();
-        quote! {
+        let span = guard.span();
+
+        quote_spanned! {span=>
             fn #guard_ident(messages: &Vec<&Msg>) -> bool {
                 match (#unpacking) {
                     (#pattern) => #guard,
