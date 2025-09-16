@@ -144,23 +144,27 @@ impl Pattern {
 
     fn generate_element_mapping_code(&self) -> TokenStream {
         // Map each variant to all positions where it appears in the pattern
-        let mut variant_positions: HashMap<String, Vec<usize>> = HashMap::new();
+        let mut message_variant_positions: HashMap<String, Vec<usize>> = HashMap::new();
+        let mut message_idents: Vec<String> = Vec::new();
 
         for (index, element) in self.0.iter().enumerate() {
-            variant_positions
+            message_variant_positions
                 .entry(element.variant_ident.to_string())
                 .or_default()
                 .push(index);
+
+            message_idents.push(element.variant_ident.to_string());
         }
 
-        // Generate Element creation code for each pattern position
-        let element_creations = self.0.iter().enumerate().map(|(index, element)| {
-            let positions = &variant_positions[&element.variant_ident.to_string()];
+        // Generate Element mapping code for each position in messages list
+        message_idents.sort();
+        let element_mappings = message_idents.iter().enumerate().map(|(index, ident)| {
+            let positions = &message_variant_positions[ident];
 
             quote!(fairjax_core::permute::Element::new(self.messages[#index].unwrap(), vec![#(#positions),*]))
         });
 
-        quote!(#(#element_creations),*)
+        quote!(#(#element_mappings),*)
     }
 
     pub fn generate_declaration_code(
@@ -226,7 +230,7 @@ mod pattern_codegen_tests {
 
     #[test]
     fn test_generate_declaration_code() {
-        let pattern = Pattern::parse(quote!(A(x) && A(y) && B(z))).unwrap();
+        let pattern = Pattern::parse(quote!(A(x) && B(z) && A(y))).unwrap();
 
         let message_type = quote!(MyMessage);
         let struct_name = Ident::new("FairjaxGenerated0", Span::call_site());
@@ -268,9 +272,9 @@ mod pattern_codegen_tests {
 
                 fn to_elements(&self) -> Vec<fairjax_core::permute::Element> {
                     vec![
-                        fairjax_core::permute::Element::new(self.messages[0usize].unwrap(), vec![0usize, 1usize]),
-                        fairjax_core::permute::Element::new(self.messages[1usize].unwrap(), vec![0usize, 1usize]),
-                        fairjax_core::permute::Element::new(self.messages[2usize].unwrap(), vec![2usize])
+                        fairjax_core::permute::Element::new(self.messages[0usize].unwrap(), vec![0usize, 2usize]),
+                        fairjax_core::permute::Element::new(self.messages[1usize].unwrap(), vec![0usize, 2usize]),
+                        fairjax_core::permute::Element::new(self.messages[2usize].unwrap(), vec![1usize])
                     ]
                 }
             }
