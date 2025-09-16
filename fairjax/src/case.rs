@@ -22,11 +22,11 @@ impl Case {
     }
 
     pub fn parse(input: TokenStream) -> Result<Self> {
-        let args = split_by_char(input, ',');
+        let args = split_by_char(input.clone(), ',');
 
         // Check number of args is correct
         if args.len() != 3 {
-            return Err(Error::new(Span::call_site(), "Expected 3 arguments"));
+            return Err(Error::new_spanned(input, "Expected 3 arguments"));
         }
 
         // Unpack split and parse
@@ -121,9 +121,9 @@ impl Case {
 
     pub fn generate_declaration_code(
         &self,
-        message_type: TokenStream,
+        message_type: Ident,
         case_index: usize,
-        mailbox_ident: TokenStream,
+        mailbox_ident: Ident,
     ) -> TokenStream {
         let match_group_ident = format_ident!("FairjaxGenerated{}", case_index);
         let guard_ident = format_ident!("fairjax_pattern_guard_{}", case_index);

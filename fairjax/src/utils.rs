@@ -1,4 +1,5 @@
 use proc_macro2::{Group, TokenStream, TokenTree};
+use quote::quote;
 
 pub fn split_by_char(input: TokenStream, ch: char) -> Vec<TokenStream> {
     let mut output = Vec::new();
@@ -204,11 +205,27 @@ mod extract_group_tests {
     }
 }
 
-pub fn parse_identifier(input: &TokenStream) -> syn::Result<proc_macro2::Ident> {
-    let mut iter = input.clone().into_iter();
+pub fn parse_identifier(input: &TokenStream, allow_tail: bool) -> syn::Result<proc_macro2::Ident> {
+    let mut iter = input.clone().into_iter().peekable();
     match iter.next() {
-        Some(TokenTree::Ident(ident)) => Ok(ident),
-        _ => Err(syn::Error::new_spanned(input, "Expected identifier")),
+        Some(TokenTree::Ident(ident)) => match iter.peek() {
+            None => Ok(ident),
+            Some(_) if allow_tail => Ok(ident),
+            Some(_) => {
+                let tail = iter.collect::<TokenStream>();
+                Err(syn::Error::new_spanned(
+                    tail.clone(),
+                    format!(
+                        "Unexpected tokens: '{}' after identifier: '{}'",
+                        tail, ident
+                    ),
+                ))
+            }
+        },
+        _ => Err(syn::Error::new_spanned(
+            input,
+            format!("Expected identifier, got: '{}'", input),
+        )),
     }
 }
 
@@ -234,12 +251,5 @@ pub fn compare_token_streams(a_input: &TokenStream, b_input: &TokenStream) {
             (None, None) => break,
             _ => panic!("Token streams have different lengths"),
         }
-    }
-}
-
-pub fn compare_lists_of_token_streams(a: &[TokenStream], b: &[TokenStream]) {
-    assert_eq!(a.len(), b.len());
-    for (exp, out) in a.iter().zip(b.iter()) {
-        assert_eq!(exp.to_string(), out.to_string());
     }
 }

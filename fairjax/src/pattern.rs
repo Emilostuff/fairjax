@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::utils::{extract_group, parse_identifier, split_by_char, split_by_double_char};
 use proc_macro2::{Delimiter, Group, Ident, TokenStream};
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::Result;
 
 #[derive(Debug)]
@@ -54,7 +54,7 @@ impl Element {
             .ok_or_else(|| {
                 syn::Error::new_spanned(input.clone(), "Failed to extract variant identifier")
             })
-            .map(|ts| parse_identifier(ts))??;
+            .map(|ts| parse_identifier(ts, true))??;
 
         // Extract grouping (if if present
         match extract_group(&input) {
@@ -169,7 +169,7 @@ impl Pattern {
 
     pub fn generate_declaration_code(
         &self,
-        message_type: TokenStream,
+        message_type: Ident,
         struct_ident: Ident,
     ) -> TokenStream {
         let match_arms = self.generate_match_arm_code();
@@ -232,7 +232,7 @@ mod pattern_codegen_tests {
     fn test_generate_declaration_code() {
         let pattern = Pattern::parse(quote!(A(x) && B(z) && A(y))).unwrap();
 
-        let message_type = quote!(MyMessage);
+        let message_type = Ident::new("MyMessage", Span::call_site());
         let struct_name = Ident::new("FairjaxGenerated0", Span::call_site());
         let output = pattern.generate_declaration_code(message_type, struct_name);
 

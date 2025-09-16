@@ -1,9 +1,9 @@
 use fairjax_core::Message;
+use fairjax_core::MessageId;
 use fairjax_core::mailbox::MailBox;
 use fairjax_core::matchgroup::MatchGroup;
 use fairjax_core::pattern::PatternMatcher;
 use fairjax_core::permute::Element;
-use fairjax_core::{GuardFn, MessageId};
 
 #[derive(Clone, Debug, Copy, PartialEq)]
 enum Msg {
