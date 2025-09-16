@@ -39,14 +39,14 @@ impl EnumType {
 }
 
 #[derive(Debug)]
-struct Element {
+struct SubPattern {
     full: TokenStream,
     variant_ident: Ident,
     full_until_data: TokenStream,
     enum_type: EnumType,
 }
 
-impl Element {
+impl SubPattern {
     pub fn parse(input: TokenStream) -> Result<Self> {
         // Extract variant identifier
         let variant_ident = split_by_double_char(input.clone(), ':')
@@ -56,7 +56,7 @@ impl Element {
             })
             .map(|ts| parse_identifier(ts, true))??;
 
-        // Extract grouping (if if present
+        // Extract grouping if present
         match extract_group(&input) {
             None => Ok(Self {
                 full: input.clone(),
@@ -70,22 +70,22 @@ impl Element {
                 full_until_data: res.prefix,
                 enum_type: EnumType::parse(res.group)?,
             }),
-            _ => Err(syn::Error::new_spanned(input.clone(), "Invalid pattern")),
+            Some(res) => Err(syn::Error::new_spanned(res.postfix, "Unexpected tokens")),
         }
     }
 }
 
 #[derive(Debug)]
-pub struct Pattern(Vec<Element>);
+pub struct Pattern(Vec<SubPattern>);
 
 impl Pattern {
     pub fn parse(input: TokenStream) -> Result<Self> {
-        let elements = split_by_double_char(input, '&');
+        let sub_patterns = split_by_double_char(input, '&');
         Ok(Pattern(
-            elements
+            sub_patterns
                 .into_iter()
-                .map(|p| Element::parse(p))
-                .collect::<Result<Vec<Element>>>()?,
+                .map(|p| SubPattern::parse(p))
+                .collect::<Result<Vec<SubPattern>>>()?,
         ))
     }
 
@@ -94,23 +94,23 @@ impl Pattern {
     }
 
     pub fn generate_full_pattern(&self) -> TokenStream {
-        let full_elements = self.0.iter().map(|e| e.full.clone());
+        let full_sub_patterns = self.0.iter().map(|e| e.full.clone());
 
         quote! {
-            #(#full_elements),*
+            #(#full_sub_patterns),*
         }
     }
 
     fn generate_match_arm_code(&self) -> TokenStream {
-        // Count occurrences of each variant, keep reference to first element type
-        let mut variant_info: HashMap<String, (usize, &Element)> = HashMap::new();
+        // Count occurrences of each variant, keep reference to first sub-pattern instance
+        let mut variant_info: HashMap<String, (usize, &SubPattern)> = HashMap::new();
 
-        for element in &self.0 {
-            let variant_key = element.variant_ident.to_string();
+        for sub_pattern in &self.0 {
+            let variant_key = sub_pattern.variant_ident.to_string();
             variant_info
                 .entry(variant_key)
                 .and_modify(|(count, _)| *count += 1)
-                .or_insert((1, element));
+                .or_insert((1, sub_pattern));
         }
 
         // Extract variant data and calculate their index ranges, sort output based on Ident
@@ -118,9 +118,9 @@ impl Pattern {
         sorted_pairs.sort_by_key(|(key, _)| *key);
         let variant_data: Vec<_> = sorted_pairs
             .into_iter()
-            .map(|(_, &(count, element))| {
-                let enum_type = element.enum_type.to_anonymous_pattern_syntax();
-                (count, &element.full_until_data, enum_type)
+            .map(|(_, &(count, subpattern))| {
+                let enum_type = subpattern.enum_type.to_anonymous_pattern_syntax();
+                (count, &subpattern.full_until_data, enum_type)
             })
             .collect();
 
@@ -147,13 +147,13 @@ impl Pattern {
         let mut message_variant_positions: HashMap<String, Vec<usize>> = HashMap::new();
         let mut message_idents: Vec<String> = Vec::new();
 
-        for (index, element) in self.0.iter().enumerate() {
+        for (index, subpattern) in self.0.iter().enumerate() {
             message_variant_positions
-                .entry(element.variant_ident.to_string())
+                .entry(subpattern.variant_ident.to_string())
                 .or_default()
                 .push(index);
 
-            message_idents.push(element.variant_ident.to_string());
+            message_idents.push(subpattern.variant_ident.to_string());
         }
 
         // Generate Element mapping code for each position in messages list

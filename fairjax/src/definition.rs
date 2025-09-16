@@ -56,7 +56,7 @@ impl JoinDefinition {
 
         // Parse remaining args to cases:
         let cases = args
-            .map(|arg| Case::parse(JoinDefinition::extract_case(arg)?))
+            .map(|arg| Case::parse(arg))
             .collect::<Result<Vec<Case>>>()?;
 
         // Return join defenition
@@ -66,45 +66,6 @@ impl JoinDefinition {
             message,
             cases,
         })
-    }
-
-    fn extract_case(input: TokenStream) -> Result<TokenStream> {
-        let mut iter = input.into_iter().peekable();
-        let case_ident = match iter.next() {
-            Some(TokenTree::Ident(ident)) if ident == "case" => ident,
-            Some(tt) => return Err(Error::new_spanned(tt, "Expected 'case' keyword here")),
-            None => {
-                return Err(Error::new(
-                    Span::call_site(),
-                    "Expected a case declaration after ','",
-                ));
-            }
-        };
-
-        match iter.peek().map(|x| x.clone()) {
-            Some(TokenTree::Group(g)) if g.delimiter() == Delimiter::Parenthesis => {
-                iter.next();
-                match iter.peek() {
-                    Some(_) => {
-                        return Err(syn::Error::new_spanned(
-                            iter.collect::<TokenStream>(),
-                            "Unexpected tokens after 'case( .. )'",
-                        ));
-                    }
-                    None => return Ok(g.stream()),
-                }
-            }
-            Some(_) => {
-                return Err(syn::Error::new_spanned(
-                    iter.collect::<TokenStream>(),
-                    "Expected ()-group after 'case' keyword",
-                ));
-            }
-            None => Err(syn::Error::new_spanned(
-                case_ident,
-                "Expected ()-group after 'case' keyword",
-            )),
-        }
     }
 }
 

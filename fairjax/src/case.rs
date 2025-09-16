@@ -1,6 +1,6 @@
 use crate::pattern::Pattern;
 use crate::utils::split_by_char;
-use proc_macro2::{Ident, TokenStream};
+use proc_macro2::{Delimiter, Ident, Span, TokenStream, TokenTree};
 use quote::{format_ident, quote, quote_spanned};
 use syn::spanned::Spanned;
 use syn::{Error, Result};
@@ -23,23 +23,83 @@ impl Case {
     }
 
     pub fn parse(input: TokenStream) -> Result<Self> {
-        let args = split_by_char(input.clone(), ',');
+        let inner = Case::unpack_case(input.clone())?;
+        let mut args = split_by_char(inner, ',').into_iter();
 
-        // Check number of args is correct
-        if args.len() != 3 {
-            return Err(Error::new_spanned(input, "Expected 3 arguments"));
-        }
+        let pattern = match args.next() {
+            Some(ts) => Pattern::parse(ts)?,
+            None => {
+                return Err(Error::new_spanned(
+                    input.clone(),
+                    "Pattern missing in 'case' declaration",
+                ));
+            }
+        };
 
-        // Unpack split and parse
-        let pattern = Pattern::parse(args[0].clone())?;
-        let guard = args[1].clone();
-        let body = args[2].clone();
+        let guard = match args.next() {
+            Some(ts) => ts,
+            None => {
+                return Err(Error::new_spanned(
+                    input.clone(),
+                    "Guard missing in 'case' declaration",
+                ));
+            }
+        };
+
+        let body = match args.next() {
+            Some(ts) => ts,
+            None => {
+                return Err(Error::new_spanned(
+                    input.clone(),
+                    "Body missing in 'case' declaration",
+                ));
+            }
+        };
 
         Ok(Case {
             pattern,
             guard,
             body,
         })
+    }
+
+    fn unpack_case(input: TokenStream) -> Result<TokenStream> {
+        let mut iter = input.into_iter().peekable();
+        let case_ident = match iter.next() {
+            Some(TokenTree::Ident(ident)) if ident == "case" => ident,
+            Some(tt) => return Err(Error::new_spanned(tt, "Expected 'case' keyword here")),
+            None => {
+                return Err(Error::new(
+                    Span::call_site(),
+                    "Expected a case declaration after ','",
+                ));
+            }
+        };
+
+        match iter.peek().map(|x| x.clone()) {
+            Some(TokenTree::Group(g)) if g.delimiter() == Delimiter::Parenthesis => {
+                iter.next();
+                match iter.peek() {
+                    Some(_) => {
+                        return Err(syn::Error::new_spanned(
+                            iter.collect::<TokenStream>(),
+                            "Unexpected tokens after 'case( .. )'",
+                        ));
+                    }
+                    None => return Ok(g.stream()),
+                }
+            }
+            Some(_) => {
+                return Err(syn::Error::new_spanned(
+                    iter.collect::<TokenStream>(),
+                    "Expected ()-group after 'case' keyword",
+                ));
+            }
+            None => Err(syn::Error::new_spanned(
+                case_ident,
+                "Expected ()-group after 'case' keyword",
+            )),
+        }
     }
 }
 
@@ -52,11 +112,11 @@ mod parse_tests {
     #[test]
     fn test_expand_case() {
         let input = quote! {
-            A(a, b) && B(_, c) && C(d),
+            case(A(a, b) && B(_, c) && C(d),
             a == d,
             {
                 f(b, c);
-            }
+            })
         };
 
         let expected = Case {
