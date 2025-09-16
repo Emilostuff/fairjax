@@ -84,10 +84,9 @@ impl JoinDefinition {
     pub fn generate(self) -> TokenStream {
         // Init mailbox if not done
         let mailbox_ident = self.mailbox.clone();
-        let input_var = quote!(input);
-        let match_index_var = quote!(fairest_match_index);
+        let match_result = quote!(result);
 
-        let action_code = self.generate_action_code(match_index_var.clone(), input_var.clone());
+        let action_code = self.generate_action_code(match_result.clone());
         let declaration_code = self.generate_declaration_code();
         let msg = self.message;
 
@@ -104,17 +103,15 @@ impl JoinDefinition {
                 #mailbox_ident.init();
             }
 
-            let #input_var = [#msg, #msg.clone(), #msg.clone()];
-            let #match_index_var = None;
+            let #match_result = #mailbox_ident.consume(#msg);
+
+            // Run action if match was found
             #action_code
         }
     }
 
-    pub fn generate_action_code(
-        &self,
-        match_index_var: TokenStream,
-        input_var: TokenStream,
-    ) -> TokenStream {
+    pub fn generate_action_code(&self, match_result: TokenStream) -> TokenStream {
+        let input_var = quote!(input);
         let actions = self
             .cases
             .iter()
@@ -123,8 +120,8 @@ impl JoinDefinition {
         let indices = 0..actions.len();
 
         quote! {
-            match #match_index_var {
-                #(Some(#indices) => {#actions}),*,
+            match #match_result {
+                #(Some((#indices, #input_var)) => {#actions}),*,
                 None => (),
                 _ => panic!(),
             }
@@ -181,13 +178,12 @@ mod code_gen_tests {
             cases: vec![case_0, case_1],
         };
 
-        let input_var = quote!(input);
-        let match_index_var = quote!(fairest_match_index);
+        let match_result = quote!(result);
 
-        let output = join_def.generate_action_code(match_index_var, input_var);
+        let output = join_def.generate_action_code(match_result.clone());
         let expected = quote! {
-            match fairest_match_index {
-                Some(0usize) => {
+            match result {
+                Some((0usize, input)) => {
                     match (input[0usize], input[1usize], input[2usize]) {
                         (A(a, b), B(_, c), C(d)) => {
                             println!("Success");
@@ -195,7 +191,7 @@ mod code_gen_tests {
                         _ => panic!("not good")
                     }
                 },
-                Some(1usize) => {
+                Some((1usize, input)) => {
                     match (input[0usize], input[1usize]) {
                         (E(k, _), C(d)) => {
                             println!("More Success");

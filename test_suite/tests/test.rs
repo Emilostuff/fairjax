@@ -9,20 +9,19 @@ enum Msg {
 }
 
 #[test]
-fn test_use() {
+fn test() {
     use Msg::*;
     let mut mailbox: MailBox<Msg> = MailBox::new();
 
-    for msg in [A(10), B(5)] {
+    for msg in [A(4), B(5), C(5, 8), B(8)] {
         match_fairest_case!(
             Msg,
             msg >> mailbox,
             case(A(x) && B(y), x >= y, {
-                println!("{} >= {}", x, y);
+                println!("Pattern 0: {} >= {}", x, y);
             }),
             case(B(x1) && B(x2) && C(y1, y2), x1 == y1 && x2 == y2, {
-                println!("{} == {} && {} == {}", x1, x2, y1, y2);
-                println!("found pattern!");
+                println!("Pattern 1: {} == {} && {} == {}", x1, y1, x2, y2);
             })
         );
     }

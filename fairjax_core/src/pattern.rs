@@ -24,8 +24,8 @@ impl<G: MatchGroup<M>, M: Message> PatternMatcher<G, M> {
 impl<G: MatchGroup<M>, M: Message> Pattern<M> for PatternMatcher<G, M> {
     fn consume(&mut self, message: &M, id: MessageId, store: &Store<M>) -> Option<Vec<MessageId>> {
         let response = self.tree.ramification(message, id, store, &self.guard_fn);
-        println!();
-        self.tree.print_tree(0);
+        //println!();
+        //self.tree.print_tree(0);
         response
     }
 
