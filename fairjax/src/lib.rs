@@ -1,7 +1,16 @@
-mod case;
-mod definition;
+mod compile {
+    pub mod case {
+        pub mod action;
+        pub mod declaration;
+    }
+    pub mod definition;
+}
+mod parse {
+    pub mod case;
+    pub mod definition;
+    pub mod pattern;
+}
 mod derive;
-mod pattern;
 mod utils;
 
 use proc_macro::TokenStream;
@@ -15,8 +24,14 @@ pub fn derive_message_trait(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn match_fairest_case(input: TokenStream) -> TokenStream {
-    match definition::JoinDefinition::parse(input.into()) {
-        Ok(def) => def.generate().into(),
+    match parse::definition::JoinDefinition::parse(input.into()) {
+        Ok(def) => compile::definition::JoinDefinitionGenerator::new(def)
+            .generate()
+            .into(),
         Err(e) => return e.to_compile_error().into(),
     }
+}
+
+trait Compile {
+    fn generate(self) -> proc_macro2::TokenStream;
 }

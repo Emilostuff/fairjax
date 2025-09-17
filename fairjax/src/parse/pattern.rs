@@ -5,7 +5,7 @@ use proc_macro2::{Delimiter, Group, Ident, TokenStream};
 use quote::quote;
 use syn::Result;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum EnumType {
     Empty,
     Tuple(u8),
@@ -38,7 +38,7 @@ impl EnumType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct SubPattern {
     full: TokenStream,
     variant_ident: Ident,
@@ -75,7 +75,7 @@ impl SubPattern {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Pattern(Vec<SubPattern>);
 
 impl Pattern {
