@@ -2,22 +2,22 @@ use fairjax::*;
 use fairjax_core::MailBox;
 
 #[derive(Clone, Debug, Copy, PartialEq, Message)]
-enum Msg {
+enum MyMsg {
     A(u8),
     B(u8),
     C(u8, u8),
 }
 
-use Msg::*;
+use MyMsg::*;
 
 #[derive(Clone, Debug, PartialEq)]
 struct Match {
     pattern_no: usize,
-    messages: Vec<Msg>,
+    messages: Vec<MyMsg>,
 }
 
 impl Match {
-    fn new(pattern_no: usize, messages: Vec<Msg>) -> Self {
+    fn new(pattern_no: usize, messages: Vec<MyMsg>) -> Self {
         Match {
             pattern_no,
             messages,
@@ -25,13 +25,13 @@ impl Match {
     }
 }
 
-fn run_test(messages: &[Msg]) -> Vec<Match> {
-    let mut mailbox: MailBox<Msg> = MailBox::new();
+fn run_test(messages: &[MyMsg]) -> Vec<Match> {
+    let mut mailbox: MailBox<MyMsg> = MailBox::new();
     let mut output = vec![];
 
     for msg in messages {
         match_fairest_case!(
-            Msg,
+            MyMsg,
             msg >> mailbox,
             case(A(x) && B(y), x >= y, {
                 output.push(Match {

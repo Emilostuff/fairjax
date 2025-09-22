@@ -32,10 +32,11 @@ impl CaseDeclarationGenerator {
         let unpacking = self.input_unpacking_code(quote!(messages));
         let pattern = self.case.pattern.generate_full_pattern();
         let guard = self.case.guard.clone();
+        let message_type = self.message_type.clone();
         let span = guard.span();
 
         quote_spanned! {span=>
-            fn #guard_ident(messages: &Vec<&Msg>) -> bool {
+            fn #guard_ident(messages: &Vec<&#message_type>) -> bool {
                 match (#unpacking) {
                     (#pattern) => #guard,
                     _ => unreachable!(),
