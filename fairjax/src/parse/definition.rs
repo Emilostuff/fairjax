@@ -1,7 +1,6 @@
 use crate::utils::{parse_identifier, split_by_char};
 use crate::{parse::case::Case, utils::split_by_double_char};
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::quote;
 use syn::{Error, Result};
 
 pub struct JoinDefinition {

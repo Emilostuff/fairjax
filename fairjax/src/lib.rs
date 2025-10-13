@@ -9,6 +9,7 @@ mod parse {
     pub mod case;
     pub mod definition;
     pub mod pattern;
+    pub mod strategy;
 }
 mod derive;
 mod utils;

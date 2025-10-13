@@ -1,10 +1,13 @@
 use crate::parse::pattern::Pattern;
+use crate::parse::strategy::Strategy;
 use crate::utils::split_by_char;
 use proc_macro2::{Delimiter, Span, TokenStream, TokenTree};
+use quote::quote;
 use syn::{Error, Result};
 
 #[derive(Debug, Clone)]
 pub struct Case {
+    pub strategy: Strategy,
     pub pattern: Pattern,
     pub guard: TokenStream,
     pub body: TokenStream,
@@ -14,6 +17,7 @@ pub struct Case {
 impl Case {
     pub fn new(pattern: TokenStream, guard: TokenStream, body: TokenStream) -> Result<Self> {
         Ok(Case {
+            strategy: Strategy::Auto,
             pattern: Pattern::parse(pattern)?,
             guard,
             body,
@@ -21,7 +25,7 @@ impl Case {
     }
 
     pub fn parse(input: TokenStream) -> Result<Self> {
-        let inner = Case::unpack_case(input.clone())?;
+        let (strategy, inner) = Case::unpack_case(input.clone())?;
         let mut args = split_by_char(inner, ',').into_iter();
 
         let pattern = match args.next() {
@@ -55,13 +59,14 @@ impl Case {
         };
 
         Ok(Case {
+            strategy,
             pattern,
             guard,
             body,
         })
     }
 
-    fn unpack_case(input: TokenStream) -> Result<TokenStream> {
+    fn unpack_case(input: TokenStream) -> Result<(Strategy, TokenStream)> {
         let mut iter = input.into_iter().peekable();
         let case_ident = match iter.next() {
             Some(TokenTree::Ident(ident)) if ident == "case" => ident,
@@ -70,6 +75,55 @@ impl Case {
                 return Err(Error::new(
                     Span::call_site(),
                     "Expected a case declaration after ','",
+                ));
+            }
+        };
+
+        let rest = iter.clone();
+
+        let strategy = match iter.peek() {
+            Some(TokenTree::Group(_)) => Strategy::Auto,
+            Some(_) => match (
+                iter.next(),
+                iter.next(),
+                iter.next(),
+                iter.next(),
+                iter.next(),
+            ) {
+                (
+                    Some(TokenTree::Punct(c)),
+                    Some(TokenTree::Punct(c1)),
+                    Some(TokenTree::Punct(gt)),
+                    Some(TokenTree::Ident(ident)),
+                    Some(TokenTree::Punct(lt)),
+                ) if c.as_char() == ':'
+                    && c1.as_char() == ':'
+                    && gt.as_char() == '<'
+                    && lt.as_char() == '>' =>
+                {
+                    match ident.to_string().as_str() {
+                        "Auto" => Strategy::Auto,
+                        "StatefulTree" => Strategy::StatefulTree,
+                        "BruteForce" => Strategy::BruteForce,
+                        _ => {
+                            return Err(syn::Error::new_spanned(
+                                ident,
+                                "Expected one of the following strategies: 'Auto', 'StatefulTree', or 'BruteForce'",
+                            ));
+                        }
+                    }
+                }
+                _ => {
+                    return Err(syn::Error::new_spanned(
+                        rest.collect::<TokenStream>(),
+                        "Expected ()-group or strategy annotation '::<STRATEGY>' after 'case' keyword",
+                    ));
+                }
+            },
+            None => {
+                return Err(syn::Error::new_spanned(
+                    case_ident,
+                    "Expected ()-group or strategy annotation '::<STRATEGY>' after 'case' keyword",
                 ));
             }
         };
@@ -84,7 +138,7 @@ impl Case {
                             "Unexpected tokens after 'case( .. )'",
                         ));
                     }
-                    None => return Ok(g.stream()),
+                    None => return Ok((strategy, g.stream())),
                 }
             }
             Some(_) => {
@@ -118,6 +172,7 @@ mod tests {
         };
 
         let expected = Case {
+            strategy: Strategy::Auto,
             pattern: Pattern::parse(quote!(A(a, b) && B(_, c) && C(d))).unwrap(),
             guard: quote!(a == d),
             body: quote!({

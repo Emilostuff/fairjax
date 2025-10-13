@@ -39,13 +39,17 @@ fn run_test(messages: &[MyMsg]) -> Vec<Match> {
                     messages: vec![A(x), B(y)],
                 });
             }),
-            case(B(x1) && C(y1, y2) && B(x2), x1 == y1 && x2 == y2, {
-                output.push(Match {
-                    pattern_no: 1,
-                    messages: vec![B(x1), C(y1, y2), B(x2)],
-                });
-            }),
-            case(C(x1, x2) && C(y1, y2), x1 == y1 && x2 == y2, {
+            case(
+                B(x1) && C(y1, y2) && B(x2),
+                x1 == y1 && x2 == y2 && x1 == y1 && x2 == y2,
+                {
+                    output.push(Match {
+                        pattern_no: 1,
+                        messages: vec![B(x1), C(y1, y2), B(x2)],
+                    });
+                }
+            ),
+            case::<BruteForce>(C(x1, x2) && C(y1, y2), x1 == y1 && x2 == y2, {
                 output.push(Match {
                     pattern_no: 2,
                     messages: vec![C(x1, x2), C(y1, y2)],

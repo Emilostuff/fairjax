@@ -87,11 +87,7 @@ mod tests {
     #[test]
     fn test_input_unpacking_code() {
         let generator = CaseDeclarationGenerator::new(
-            Case {
-                pattern: Pattern::parse(quote!(A && B && C)).unwrap(),
-                guard: quote!(),
-                body: quote!(),
-            },
+            Case::new(quote!(A && B && C), quote!(), quote!()).unwrap(),
             0,
             Ident::new("x", Span::call_site()),
             Ident::new("y", Span::call_site()),

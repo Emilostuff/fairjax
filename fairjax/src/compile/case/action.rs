@@ -53,11 +53,7 @@ mod tests {
     #[test]
     fn test_input_unpacking_code() {
         let generator = CaseActionGenerator::new(
-            Case {
-                pattern: Pattern::parse(quote!(A && B && C)).unwrap(),
-                guard: quote!(),
-                body: quote!(),
-            },
+            Case::new(quote!(A && B && C), quote!(), quote!()).unwrap(),
             quote!(input),
         );
 
@@ -70,11 +66,7 @@ mod tests {
     #[test]
     fn test_generate_pattern_match_code() {
         let generator = CaseActionGenerator::new(
-            Case {
-                pattern: Pattern::parse(quote!(A(a, b) && B(_, c) && C(d))).unwrap(),
-                guard: quote!(),
-                body: quote!(),
-            },
+            Case::new(quote!(A(a, b) && B(_, c) && C(d)), quote!(), quote!()).unwrap(),
             quote!(input),
         );
 
@@ -87,13 +79,12 @@ mod tests {
     #[test]
     fn test_generate_action_code() {
         let generator = CaseActionGenerator::new(
-            Case {
-                pattern: Pattern::parse(quote!(A(a, b) && B(_, c) && C(d))).unwrap(),
-                guard: quote!(),
-                body: quote! {
-                    println!("Success");
-                },
-            },
+            Case::new(
+                quote!(A(a, b) && B(_, c) && C(d)),
+                quote!(),
+                quote!(println!("Success");),
+            )
+            .unwrap(),
             quote!(input),
         );
 
