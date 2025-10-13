@@ -1,9 +1,7 @@
 use fairjax_core::Message;
 use fairjax_core::MessageId;
 use fairjax_core::mailbox::MailBox;
-use fairjax_core::matchgroup::MatchGroup;
-use fairjax_core::pattern::PatternMatcher;
-use fairjax_core::permute::Element;
+use fairjax_core::stateful_tree::{PartialMatch, StatefulTreeMatcher, permute::Element};
 
 #[derive(Clone, Debug, Copy, PartialEq)]
 enum Msg {
@@ -29,7 +27,7 @@ pub struct FaultFaultFix {
     counter: u8,
 }
 
-impl MatchGroup<Msg> for FaultFaultFix {
+impl PartialMatch<Msg> for FaultFaultFix {
     fn extend(&self, message: &Msg, id: MessageId) -> Option<Self> {
         let mut new_group = self.clone();
         let (i, j) = match message {
@@ -70,7 +68,7 @@ pub struct FaultFix {
     counter: u8,
 }
 
-impl MatchGroup<Msg> for FaultFix {
+impl PartialMatch<Msg> for FaultFix {
     fn extend(&self, message: &Msg, id: MessageId) -> Option<Self> {
         let mut new_group = self.clone();
         let (i, j) = match message {
@@ -137,13 +135,13 @@ fn get_join_definition() -> MailBox<Msg> {
     }
 
     // Create patterns
-    let faultfaultfix = PatternMatcher::<FaultFaultFix, Msg>::new(faultfaultfix_guard);
-    let faultfix = PatternMatcher::<FaultFix, Msg>::new(faultfix_guard);
+    let faultfaultfix = StatefulTreeMatcher::<FaultFaultFix, Msg>::new(faultfaultfix_guard);
+    let faultfix = StatefulTreeMatcher::<FaultFix, Msg>::new(faultfix_guard);
 
     // Return join definition
     let mut mailbox = MailBox::new();
-    mailbox.add_pattern(Box::new(faultfix));
-    mailbox.add_pattern(Box::new(faultfaultfix));
+    mailbox.add_case(Box::new(faultfix));
+    mailbox.add_case(Box::new(faultfaultfix));
     mailbox
 }
 

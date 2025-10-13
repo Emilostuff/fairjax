@@ -1,11 +1,11 @@
-use crate::{Message, MessageId, Store, pattern::Pattern};
+use crate::{CaseHandler, Message, MessageId, Store};
 use std::collections::HashMap;
 
 pub struct MailBox<M: Message> {
     store: Store<M>,
     init: bool,
     id_counter: usize,
-    patterns: Vec<Box<dyn Pattern<M>>>,
+    cases: Vec<Box<dyn CaseHandler<M>>>,
 }
 
 impl<M: Message> MailBox<M> {
@@ -14,7 +14,7 @@ impl<M: Message> MailBox<M> {
             store: HashMap::new(),
             init: false,
             id_counter: 0,
-            patterns: Vec::new(),
+            cases: Vec::new(),
         }
     }
 
@@ -53,16 +53,16 @@ impl<M: Message> MailBox<M> {
     }
 
     pub fn is_modified(&self) -> bool {
-        !self.patterns.is_empty() || !self.store.is_empty()
+        !self.cases.is_empty() || !self.store.is_empty()
     }
 
     pub fn init(&mut self) {
         self.init = true;
     }
 
-    pub fn add_pattern(&mut self, pattern: Box<dyn Pattern<M>>) {
+    pub fn add_case(&mut self, case: Box<dyn CaseHandler<M>>) {
         if !self.init {
-            self.patterns.push(pattern);
+            self.cases.push(case);
         } else {
             panic!("Mailbox must not be modifed");
         }
@@ -75,14 +75,14 @@ impl<M: Message> MailBox<M> {
         // Store message
         self.store.insert(id, message.clone());
 
-        // Compute fairest match for each pattern
+        // Compute fairest match for each case
         let matches: Vec<_> = self
-            .patterns
+            .cases
             .iter_mut()
             .map(|p| p.consume(&message, id, &self.store))
             .collect();
 
-        // Find fairest match across patterns
+        // Find fairest match across cases
         let fairest_match = Self::get_fairest_match(&matches)?;
         let matched_message_ids = matches[fairest_match].as_ref().unwrap();
 
@@ -97,9 +97,9 @@ impl<M: Message> MailBox<M> {
             self.store.remove(&id);
         }
 
-        // remove messages from each pattern
-        for pattern in &mut self.patterns {
-            pattern.remove(&matched_message_ids);
+        // remove messages from each case
+        for case in &mut self.cases {
+            case.remove(&matched_message_ids);
         }
 
         Some((fairest_match, matched_messages))

@@ -1,20 +1,20 @@
-use super::matchgroup::MatchGroup;
-use super::{GuardFn, MessageId};
+use super::PartialMatch;
+use super::permute::Permutations;
 use crate::Store;
-use crate::permute::Permutations;
+use crate::{GuardFn, MessageId};
 use std::fmt::Debug;
 
 #[derive(Default)]
-pub struct Node<G: MatchGroup<M> + Debug + Default, M: Clone> {
-    match_group: G,
-    children: Vec<Node<G, M>>,
+pub struct Node<P: PartialMatch<M> + Debug + Default, M: Clone> {
+    match_group: P,
+    children: Vec<Node<P, M>>,
     phantom: std::marker::PhantomData<M>, // Added PhantomData to use type parameter U
 }
 
-impl<G: MatchGroup<M> + Debug + Default, M: Clone> Node<G, M> {
+impl<P: PartialMatch<M> + Debug + Default, M: Clone> Node<P, M> {
     pub fn new() -> Self {
         Self {
-            match_group: G::default(),
+            match_group: P::default(),
             children: Vec::new(),
             phantom: std::marker::PhantomData,
         }

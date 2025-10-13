@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::utils::{extract_group, parse_identifier, split_by_char, split_by_double_char};
 use proc_macro2::{Delimiter, Group, Ident, TokenStream};
 use quote::quote;

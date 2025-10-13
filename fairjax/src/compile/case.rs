@@ -103,7 +103,7 @@ impl CaseGenerator {
             let pm = #init_code;
 
             // Add to mailbox
-            #mailbox_ident.add_pattern(Box::new(pm));
+            #mailbox_ident.add_case(Box::new(pm));
         }
     }
 

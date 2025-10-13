@@ -86,7 +86,7 @@ impl StatefulTreePatternGenerator {
         let element_mappings = message_idents.iter().enumerate().map(|(index, ident)| {
             let positions = &message_variant_positions[ident];
 
-            quote!(fairjax_core::permute::Element::new(self.messages[#index].unwrap(), vec![#(#positions),*]))
+            quote!(fairjax_core::stateful_tree::permute::Element::new(self.messages[#index].unwrap(), vec![#(#positions),*]))
         });
 
         quote!(#(#element_mappings),*)
@@ -99,7 +99,7 @@ impl StatefulTreePatternGenerator {
         let struct_ident = self.struct_ident.clone();
         let guard_ident = self.guard_ident.clone();
         let message_type = self.message_type.clone();
-        return quote!(fairjax_core::pattern::PatternMatcher::<#struct_ident, #message_type>::new(#guard_ident));
+        return quote!(fairjax_core::stateful_tree::StatefulTreeMatcher::<#struct_ident, #message_type>::new(#guard_ident));
     }
 
     pub fn generate_declaration_code(&self) -> TokenStream {
@@ -118,7 +118,7 @@ impl StatefulTreePatternGenerator {
                 counter: usize,
             }
 
-            impl fairjax_core::matchgroup::MatchGroup<#message_type> for #struct_ident {
+            impl fairjax_core::stateful_tree::PartialMatch<#message_type> for #struct_ident {
                 fn extend(&self, message: &#message_type, id: fairjax_core::MessageId) -> Option<Self> {
                     let mut new_group = self.clone();
                     let (i, j) = match message {
@@ -144,7 +144,7 @@ impl StatefulTreePatternGenerator {
                     self.messages.iter().filter_map(|x| *x).collect()
                 }
 
-                fn to_elements(&self) -> Vec<fairjax_core::permute::Element> {
+                fn to_elements(&self) -> Vec<fairjax_core::stateful_tree::permute::Element> {
                     vec![
                         #element_mappings
                     ]
@@ -181,7 +181,7 @@ mod pattern_codegen_tests {
                 counter: usize,
             }
 
-            impl fairjax_core::matchgroup::MatchGroup<MyMessage> for FairjaxGenerated0 {
+            impl fairjax_core::stateful_tree::PartialMatch<MyMessage> for FairjaxGenerated0 {
                 fn extend(&self, message: &MyMessage, id: fairjax_core::MessageId) -> Option<Self> {
                     let mut new_group = self.clone();
                     let (i, j) = match message {
@@ -208,11 +208,11 @@ mod pattern_codegen_tests {
                     self.messages.iter().filter_map(|x| *x).collect()
                 }
 
-                fn to_elements(&self) -> Vec<fairjax_core::permute::Element> {
+                fn to_elements(&self) -> Vec<fairjax_core::stateful_tree::permute::Element> {
                     vec![
-                        fairjax_core::permute::Element::new(self.messages[0usize].unwrap(), vec![0usize, 2usize]),
-                        fairjax_core::permute::Element::new(self.messages[1usize].unwrap(), vec![0usize, 2usize]),
-                        fairjax_core::permute::Element::new(self.messages[2usize].unwrap(), vec![1usize])
+                        fairjax_core::stateful_tree::permute::Element::new(self.messages[0usize].unwrap(), vec![0usize, 2usize]),
+                        fairjax_core::stateful_tree::permute::Element::new(self.messages[1usize].unwrap(), vec![0usize, 2usize]),
+                        fairjax_core::stateful_tree::permute::Element::new(self.messages[2usize].unwrap(), vec![1usize])
                     ]
                 }
             }
