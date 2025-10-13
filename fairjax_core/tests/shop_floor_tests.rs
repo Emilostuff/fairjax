@@ -1,3 +1,4 @@
+use fairjax_core::GuardEval;
 use fairjax_core::Message;
 use fairjax_core::MessageId;
 use fairjax_core::mailbox::MailBox;
@@ -104,7 +105,7 @@ impl PartialMatch<Msg> for FaultFix {
 
 fn get_join_definition() -> MailBox<Msg> {
     // Guards
-    fn faultfaultfix_guard(messages: &Vec<&Msg>) -> bool {
+    fn faultfaultfix_guard(messages: &Vec<&Msg>) -> GuardEval {
         match (messages[0], messages[1], messages[2]) {
             (
                 Msg::Fault {
@@ -116,12 +117,18 @@ fn get_join_definition() -> MailBox<Msg> {
                     timestamp: ts2,
                 },
                 Msg::Fix { id: fid3 },
-            ) => fid2 == fid3 && *ts2 > *ts1 + 10,
+            ) => {
+                if fid2 == fid3 && *ts2 > *ts1 + 10 {
+                    return GuardEval::True;
+                } else {
+                    return GuardEval::False;
+                }
+            }
             _ => unreachable!(),
         }
     }
 
-    fn faultfix_guard(messages: &Vec<&Msg>) -> bool {
+    fn faultfix_guard(messages: &Vec<&Msg>) -> GuardEval {
         match (messages[0], messages[1]) {
             (
                 Msg::Fault {
@@ -129,7 +136,13 @@ fn get_join_definition() -> MailBox<Msg> {
                     timestamp: _,
                 },
                 Msg::Fix { id: fid2 },
-            ) => fid1 == fid2,
+            ) => {
+                if fid1 == fid2 {
+                    return GuardEval::True;
+                } else {
+                    return GuardEval::False;
+                }
+            }
             _ => unreachable!(),
         }
     }

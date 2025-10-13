@@ -1,4 +1,5 @@
-use crate::compile::pattern::stateful_tree::StatefulTreePatternGenerator;
+use crate::compile::matcher::brute_force::BruteForceMatcherGenerator;
+use crate::compile::matcher::stateful_tree::StatefulTreeMatcherGenerator;
 use crate::parse::case::Case;
 use crate::parse::strategy::Strategy;
 use proc_macro2::{Ident, TokenStream};
@@ -45,10 +46,14 @@ impl CaseGenerator {
         let span = guard.span();
 
         quote_spanned! {span=>
-            fn #guard_ident(messages: &Vec<&#message_type>) -> bool {
+            fn #guard_ident(messages: &Vec<&#message_type>) -> fairjax_core::GuardEval {
                 match (#unpacking) {
-                    (#pattern) => #guard,
-                    _ => unreachable!(),
+                    (#pattern) => if #guard {
+                            fairjax_core::GuardEval::True
+                        } else {
+                            fairjax_core::GuardEval::False
+                        },
+                    _ => fairjax_core::GuardEval::Mismatch,
                 }
             }
         }
@@ -76,7 +81,7 @@ impl CaseGenerator {
 
         let (declaration_code, init_code) = match &self.case.strategy {
             Strategy::Auto | Strategy::StatefulTree => {
-                let pattern_gen = StatefulTreePatternGenerator::new(
+                let pattern_gen = StatefulTreeMatcherGenerator::new(
                     self.case.pattern.clone(),
                     self.message_type.clone(),
                     struct_ident.clone(),
@@ -87,7 +92,18 @@ impl CaseGenerator {
                     pattern_gen.generate_init_code(),
                 )
             }
-            s => panic!("Unimplemented strategy: {:?}", &s), // Fix,
+            Strategy::BruteForce => {
+                let pattern_gen = BruteForceMatcherGenerator::new(
+                    self.case.pattern.clone(),
+                    self.message_type.clone(),
+                    guard_ident.clone(),
+                    self.case.pattern.len(),
+                );
+                (
+                    pattern_gen.generate_declaration_code(),
+                    pattern_gen.generate_init_code(),
+                )
+            }
         };
 
         let mailbox_ident = self.mailbox_ident.clone();

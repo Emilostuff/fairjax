@@ -1,6 +1,6 @@
 mod compile {
     pub mod case;
-    pub mod pattern {
+    pub mod matcher {
         pub mod brute_force;
         pub mod stateful_tree;
     }

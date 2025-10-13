@@ -4,14 +4,14 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use std::collections::HashMap;
 
-pub struct StatefulTreePatternGenerator {
+pub struct StatefulTreeMatcherGenerator {
     pattern: Pattern,
     message_type: Ident,
     struct_ident: Ident,
     guard_ident: Ident,
 }
 
-impl StatefulTreePatternGenerator {
+impl StatefulTreeMatcherGenerator {
     pub fn new(
         pattern: Pattern,
         message_type: Ident,
@@ -94,7 +94,7 @@ impl StatefulTreePatternGenerator {
 }
 
 // Codegen
-impl StatefulTreePatternGenerator {
+impl StatefulTreeMatcherGenerator {
     pub fn generate_init_code(&self) -> TokenStream {
         let struct_ident = self.struct_ident.clone();
         let guard_ident = self.guard_ident.clone();
@@ -166,7 +166,7 @@ mod pattern_codegen_tests {
 
         let message_type = Ident::new("MyMessage", Span::call_site());
         let struct_name = Ident::new("FairjaxGenerated0", Span::call_site());
-        let pattern_gen = StatefulTreePatternGenerator::new(
+        let pattern_gen = StatefulTreeMatcherGenerator::new(
             pattern,
             message_type,
             struct_name,

@@ -1,7 +1,6 @@
 use super::PartialMatch;
 use super::permute::Permutations;
-use crate::Store;
-use crate::{GuardFn, MessageId};
+use crate::{GuardEval, GuardFn, MessageId, Store};
 use std::fmt::Debug;
 
 #[derive(Default)]
@@ -44,8 +43,10 @@ impl<P: PartialMatch<M> + Debug + Default, M: Clone> Node<P, M> {
                 for permutation in permutations {
                     let message_refs: Vec<_> = permutation.iter().map(|id| &store[id]).collect();
 
-                    if guard_fn(&message_refs) {
-                        return Some(permutation);
+                    match guard_fn(&message_refs) {
+                        GuardEval::True => return Some(permutation),
+                        GuardEval::False => continue,
+                        GuardEval::Mismatch => unreachable!(),
                     }
                 }
             } else {
