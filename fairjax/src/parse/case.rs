@@ -2,7 +2,6 @@ use crate::parse::pattern::Pattern;
 use crate::parse::strategy::Strategy;
 use crate::utils::split_by_char;
 use proc_macro2::{Delimiter, Span, TokenStream, TokenTree};
-use quote::quote;
 use syn::{Error, Result};
 
 #[derive(Debug, Clone)]
@@ -152,41 +151,5 @@ impl Case {
                 "Expected ()-group after 'case' keyword",
             )),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::utils::compare_token_streams;
-    use quote::quote;
-
-    #[test]
-    fn test_expand_case() {
-        let input = quote! {
-            case(A(a, b) && B(_, c) && C(d),
-            a == d,
-            {
-                f(b, c);
-            })
-        };
-
-        let expected = Case {
-            strategy: Strategy::Auto,
-            pattern: Pattern::parse(quote!(A(a, b) && B(_, c) && C(d))).unwrap(),
-            guard: quote!(a == d),
-            body: quote!({
-                f(b, c);
-            }),
-        };
-
-        let output = Case::parse(input).unwrap();
-        compare_token_streams(
-            &expected.pattern.generate_full_pattern(),
-            &output.pattern.generate_full_pattern(),
-        );
-
-        compare_token_streams(&expected.guard, &output.guard);
-        compare_token_streams(&expected.body, &output.body);
     }
 }

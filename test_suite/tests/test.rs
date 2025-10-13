@@ -49,7 +49,7 @@ fn run_test(messages: &[MyMsg]) -> Vec<Match> {
                     });
                 }
             ),
-            case::<BruteForce>(C(x1, x2) && C(y1, y2), x1 == y1 && x2 == y2, {
+            case(C(x1, x2) && C(y1, y2), x1 == y1 && x2 == y2, {
                 output.push(Match {
                     pattern_no: 2,
                     messages: vec![C(x1, x2), C(y1, y2)],

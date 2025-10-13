@@ -1,7 +1,8 @@
 mod compile {
-    pub mod case {
-        pub mod action;
-        pub mod declaration;
+    pub mod case;
+    pub mod pattern {
+        pub mod brute_force;
+        pub mod stateful_tree;
     }
     pub mod definition;
 }
@@ -31,8 +32,4 @@ pub fn match_fairest_case(input: TokenStream) -> TokenStream {
             .into(),
         Err(e) => return e.to_compile_error().into(),
     }
-}
-
-trait Compile {
-    fn generate(self) -> proc_macro2::TokenStream;
 }

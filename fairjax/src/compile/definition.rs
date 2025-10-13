@@ -1,26 +1,44 @@
-use crate::Compile;
-use crate::compile::case::action::CaseActionGenerator;
-use crate::compile::case::declaration::CaseDeclarationGenerator;
+use crate::compile::case::CaseGenerator;
 use crate::parse::definition::JoinDefinition;
 use proc_macro2::TokenStream;
 use quote::quote;
 
 pub struct JoinDefinitionGenerator {
     def: JoinDefinition,
+    case_generators: Vec<CaseGenerator>,
 }
 
 impl JoinDefinitionGenerator {
     pub fn new(def: JoinDefinition) -> Self {
-        Self { def }
+        let input_var = quote!(input);
+
+        let case_generators = def
+            .cases
+            .iter()
+            .enumerate()
+            .map(|(i, c)| {
+                CaseGenerator::new(
+                    c.clone(),
+                    i,
+                    def.message_type.clone(),
+                    def.mailbox.clone(),
+                    input_var.clone(),
+                )
+            })
+            .collect();
+
+        Self {
+            def,
+            case_generators,
+        }
     }
 
     fn action_code(&self, match_result: TokenStream) -> TokenStream {
         let input_var = quote!(input);
         let actions = self
-            .def
-            .cases
+            .case_generators
             .iter()
-            .map(|c| CaseActionGenerator::new(c.clone(), input_var.clone()).generate())
+            .map(|g| g.generate_action_code())
             .collect::<Vec<TokenStream>>();
         let indices = 0..actions.len();
 
@@ -35,19 +53,9 @@ impl JoinDefinitionGenerator {
 
     fn declaration_code(&self) -> TokenStream {
         let declarations = self
-            .def
-            .cases
+            .case_generators
             .iter()
-            .enumerate()
-            .map(|(i, c)| {
-                CaseDeclarationGenerator::new(
-                    c.clone(),
-                    i,
-                    self.def.message_type.clone(),
-                    self.def.mailbox.clone(),
-                )
-                .generate()
-            })
+            .map(|g| g.generate_declaration_code())
             .collect::<Vec<TokenStream>>();
 
         quote! {
@@ -56,8 +64,9 @@ impl JoinDefinitionGenerator {
     }
 }
 
-impl Compile for JoinDefinitionGenerator {
-    fn generate(self) -> TokenStream {
+// Code gen endpoints
+impl JoinDefinitionGenerator {
+    pub fn generate(self) -> TokenStream {
         // Init mailbox if not done
         let mailbox_ident = self.def.mailbox.clone();
         let match_result = quote!(result);
