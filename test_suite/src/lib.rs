@@ -1,4 +1,5 @@
 pub mod scenarios {
+    pub mod many_to_one;
     pub mod pairs;
     pub mod transitive;
 }
