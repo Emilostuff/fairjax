@@ -1,5 +1,6 @@
 pub mod scenarios {
-    pub mod shuffled_pairs;
+    pub mod pairs;
+    pub mod transitive;
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -14,5 +15,11 @@ impl<T: PartialEq + Clone + std::fmt::Debug> MatchTrace<T> {
             pattern_no,
             messages,
         }
+    }
+}
+
+impl<T: PartialEq + Clone + std::fmt::Debug> std::fmt::Display for MatchTrace<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {:?}", self.pattern_no, self.messages)
     }
 }

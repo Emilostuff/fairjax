@@ -1,5 +1,6 @@
 use super::{CaseHandler, GuardFn, Message, MessageId, Store};
 use crate::GuardEval;
+use itertools::Itertools;
 
 pub struct BruteForceMatcher<M: Message> {
     message_ids: Vec<MessageId>,
@@ -16,39 +17,23 @@ impl<M: Message> BruteForceMatcher<M> {
         }
     }
 
-    pub fn try_all_combinations(&self, store: &Store<M>) -> Option<Vec<MessageId>> {
-        fn recurse<'a, M: Message>(
-            matcher: &'a BruteForceMatcher<M>,
-            store: &'a Store<M>,
-            slice: &mut Vec<MessageId>,
-        ) -> Option<Vec<MessageId>> {
-            if slice.len() == matcher.patterns_size {
+    pub fn try_all_slices_in_sorted_lex_order(&self, store: &Store<M>) -> Option<Vec<MessageId>> {
+        for message_set in self.message_ids.iter().combinations(self.patterns_size) {
+            for slice in message_set.iter().permutations(self.patterns_size) {
                 let message_refs: Vec<_> = slice.iter().map(|id| &store[id]).collect();
-                if (matcher.guard_fn)(&message_refs) == GuardEval::True {
-                    return Some(slice.clone());
+                if (self.guard_fn)(&message_refs) == GuardEval::True {
+                    return Some(slice.iter().map(|&&&i| i).collect());
                 }
             }
-            for i in 0..matcher.message_ids.len() {
-                if !slice.contains(&matcher.message_ids[i]) {
-                    slice.push(matcher.message_ids[i]);
-                    if let Some(result) = recurse(matcher, store, slice) {
-                        return Some(result);
-                    }
-                    slice.pop();
-                }
-            }
-            None
         }
-
-        let mut slice = Vec::with_capacity(self.patterns_size);
-        recurse(&self, store, &mut slice)
+        None
     }
 }
 
 impl<M: Message> CaseHandler<M> for BruteForceMatcher<M> {
     fn consume(&mut self, _message: &M, id: MessageId, store: &Store<M>) -> Option<Vec<MessageId>> {
         self.message_ids.push(id);
-        self.try_all_combinations(store)
+        self.try_all_slices_in_sorted_lex_order(store)
     }
 
     fn remove(&mut self, messages: &Vec<MessageId>) {
