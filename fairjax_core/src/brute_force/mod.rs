@@ -150,7 +150,6 @@ mod tests {
             [3, 4],
             [4, 3],
         ];
-
         TRIED_SLICES.with_borrow(|ts| assert_eq!(&expected, ts))
     }
 }
