@@ -6,8 +6,8 @@ setup:
 expand_macro:
     cd test_suite && cargo expand --tests
 
-test:
-    cargo nextest run -r
+test arg="":
+    cargo nextest run -r {{arg}}
 
 test-heavy:
     cargo nextest run -r --run-ignored=only
