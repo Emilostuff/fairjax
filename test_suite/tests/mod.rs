@@ -1,5 +1,6 @@
 pub mod random {
     pub mod pairs;
+    pub mod sums;
     pub mod transitive;
 }
 

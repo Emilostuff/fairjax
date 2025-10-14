@@ -1,5 +1,6 @@
 pub mod scenarios {
     pub mod pairs;
+    pub mod sums;
     pub mod transitive;
 }
 
