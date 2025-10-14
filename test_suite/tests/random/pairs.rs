@@ -22,7 +22,6 @@ pub fn test_pairs_mini() {
 
 #[test]
 #[ignore]
-//#[serial_test::serial]
 /// Extensive test to be run on-demand
 pub fn test_pairs_extensive() {
     let runs = 1000;

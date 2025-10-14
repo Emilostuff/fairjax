@@ -14,6 +14,7 @@ pub struct Case {
 
 // Input Parsing
 impl Case {
+    #[cfg(test)]
     pub fn new(pattern: TokenStream, guard: TokenStream, body: TokenStream) -> Result<Self> {
         Ok(Case {
             strategy: Strategy::Auto,

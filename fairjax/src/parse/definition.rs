@@ -69,6 +69,4 @@ impl JoinDefinition {
 }
 
 #[cfg(test)]
-mod parse_tests {
-    use super::*;
-}
+mod parse_tests {}

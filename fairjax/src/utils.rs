@@ -219,6 +219,7 @@ pub fn parse_identifier(input: &TokenStream, allow_tail: bool) -> syn::Result<pr
     }
 }
 
+#[cfg(test)]
 pub fn compare_token_streams(a_input: &TokenStream, b_input: &TokenStream) {
     let a_string = a_input.to_string();
     let b_string = b_input.to_string();
