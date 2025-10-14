@@ -1,5 +1,6 @@
 use fairjax::*;
 use fairjax_core::MailBox;
+use test_suite::MatchTrace;
 
 #[derive(Clone, Debug, Copy, PartialEq, Message)]
 enum MyMsg {
@@ -10,22 +11,7 @@ enum MyMsg {
 
 use MyMsg::*;
 
-#[derive(Clone, Debug, PartialEq)]
-struct Match {
-    pattern_no: usize,
-    messages: Vec<MyMsg>,
-}
-
-impl Match {
-    fn new(pattern_no: usize, messages: Vec<MyMsg>) -> Self {
-        Match {
-            pattern_no,
-            messages,
-        }
-    }
-}
-
-fn run_test(messages: &[MyMsg]) -> Vec<Match> {
+fn run_test(messages: &[MyMsg]) -> Vec<MatchTrace<MyMsg>> {
     let mut mailbox: MailBox<MyMsg> = MailBox::new();
     let mut output = vec![];
 
@@ -34,28 +20,16 @@ fn run_test(messages: &[MyMsg]) -> Vec<Match> {
             MyMsg,
             msg >> mailbox,
             case(A(x) && B(y), x >= y, {
-                output.push(Match {
-                    pattern_no: 0,
-                    messages: vec![A(x), B(y)],
-                });
+                output.push(MatchTrace::new(0, vec![A(x), B(y)]));
             }),
             case::<BruteForce>(B(x1) && C(y1, y2) && B(x2), x1 == y1 && x2 == y2, {
-                output.push(Match {
-                    pattern_no: 1,
-                    messages: vec![B(x1), C(y1, y2), B(x2)],
-                });
+                output.push(MatchTrace::new(1, vec![B(x1), C(y1, y2), B(x2)]));
             }),
             case(C(x1, x2) && C(y1, y2), x1 == y1 && x2 == y2, {
-                output.push(Match {
-                    pattern_no: 2,
-                    messages: vec![C(x1, x2), C(y1, y2)],
-                });
+                output.push(MatchTrace::new(2, vec![C(x1, x2), C(y1, y2)]));
             }),
             case(A(x), *x > 100, {
-                output.push(Match {
-                    pattern_no: 3,
-                    messages: vec![A(x)],
-                });
+                output.push(MatchTrace::new(3, vec![A(x)]));
             })
         );
     }
@@ -65,7 +39,7 @@ fn run_test(messages: &[MyMsg]) -> Vec<Match> {
 #[test]
 fn test1() {
     let input = [A(4), B(8), C(5, 8), B(5)];
-    let expected = vec![Match::new(1, vec![B(5), C(5, 8), B(8)])];
+    let expected = vec![MatchTrace::new(1, vec![B(5), C(5, 8), B(8)])];
 
     assert_eq!(expected, run_test(&input));
 }
@@ -74,8 +48,8 @@ fn test1() {
 fn test2() {
     let input = [A(4), A(101), B(8), C(5, 8), B(5)];
     let expected = vec![
-        Match::new(3, vec![A(101)]),
-        Match::new(1, vec![B(5), C(5, 8), B(8)]),
+        MatchTrace::new(3, vec![A(101)]),
+        MatchTrace::new(1, vec![B(5), C(5, 8), B(8)]),
     ];
 
     assert_eq!(expected, run_test(&input));
@@ -94,9 +68,9 @@ fn complex_consumption_order_test() {
         B(5),        // trigger pattern_no 1
     ];
     let expected = vec![
-        Match::new(3, vec![A(120)]),
-        Match::new(1, vec![B(120), C(120, 120), B(120)]),
-        Match::new(1, vec![B(5), C(5, 8), B(8)]),
+        MatchTrace::new(3, vec![A(120)]),
+        MatchTrace::new(1, vec![B(120), C(120, 120), B(120)]),
+        MatchTrace::new(1, vec![B(5), C(5, 8), B(8)]),
     ];
 
     assert_eq!(expected, run_test(&input));

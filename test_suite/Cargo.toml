@@ -6,3 +6,7 @@ edition = "2024"
 [dependencies]
 fairjax_core = { path = "../fairjax_core" }
 fairjax = { path = "../fairjax" }
+rand = "0.9.2"
+
+[dev-dependencies]
+serial_test = "3.2.0"
