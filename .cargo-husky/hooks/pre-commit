@@ -2,7 +2,7 @@
 
 set -e
 
-echo '+cargo test -r --all'
-cargo test -r --all
+echo '+cargo nextest run -r'
+cargo nextest run -r
 echo '+cargo fmt --all -- --check'
 cargo fmt --all -- --check

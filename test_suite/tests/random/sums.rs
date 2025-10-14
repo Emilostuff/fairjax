@@ -1,30 +1,30 @@
-use test_suite::scenarios::pairs::{Msg, generate_random_messages};
+use test_suite::scenarios::sums::{Msg, generate_random_messages};
 
 // Declare runners for each strategy
-test_suite::declare_pairs!(brute_force, BruteForce);
-test_suite::declare_pairs!(stateful, StatefulTree);
+test_suite::declare_sum!(brute_force, BruteForce);
+test_suite::declare_sum!(stateful, StatefulTree);
 
 /// Declare top-level test runner
 fn run(n_runs: usize, size: usize) {
     for _ in 0..n_runs {
         let messages = generate_random_messages(size);
-        crate::compare("pairs", messages, brute_force, stateful);
+        crate::compare("sums", messages, brute_force, stateful);
     }
 }
 
 #[test]
 /// Mini test to be run always
-pub fn test_pairs_mini() {
+pub fn test_sums_mini() {
     let runs = 100;
-    let size = 20;
+    let size = 50;
     run(runs, size);
 }
 
 #[test]
 #[ignore]
 /// Extensive test to be run on-demand
-pub fn test_pairs_extensive() {
-    let runs = 1000;
-    let size = 50;
+pub fn test_sums_extensive() {
+    let runs = 5000;
+    let size = 100;
     run(runs, size);
 }

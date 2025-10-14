@@ -1,24 +1,16 @@
-use crate::parse::pattern::{Pattern, SubPattern};
 use proc_macro2::Ident;
 use proc_macro2::TokenStream;
 use quote::quote;
 
 pub struct BruteForceMatcherGenerator {
-    pattern: Pattern,
     message_type: Ident,
     guard_ident: Ident,
     pattern_size: usize,
 }
 
 impl BruteForceMatcherGenerator {
-    pub fn new(
-        pattern: Pattern,
-        message_type: Ident,
-        guard_ident: Ident,
-        pattern_size: usize,
-    ) -> Self {
+    pub fn new(message_type: Ident, guard_ident: Ident, pattern_size: usize) -> Self {
         Self {
-            pattern,
             message_type,
             guard_ident,
             pattern_size,

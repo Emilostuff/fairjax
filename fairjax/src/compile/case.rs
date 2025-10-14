@@ -94,7 +94,6 @@ impl CaseGenerator {
             }
             Strategy::BruteForce => {
                 let pattern_gen = BruteForceMatcherGenerator::new(
-                    self.case.pattern.clone(),
                     self.message_type.clone(),
                     guard_ident.clone(),
                     self.case.pattern.len(),

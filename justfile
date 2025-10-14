@@ -1,12 +1,13 @@
 setup:
     # Initialize cargo-husky
-    cargo test
+    cargo test -r
+    cargo install cargo-nextest --locked
 
 expand_macro:
     cd test_suite && cargo expand --tests
 
 test:
-    cargo test -r
+    cargo nextest run -r
 
-test-big:
-    cargo test -r -- --ignored --nocapture
+test-heavy:
+    cargo nextest run -r --run-ignored=only
