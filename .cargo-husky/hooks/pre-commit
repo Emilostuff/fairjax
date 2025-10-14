@@ -3,6 +3,6 @@
 set -e
 
 echo '+cargo nextest run -r'
-cargo nextest run -r
+cargo nextest run -r --status-level none
 echo '+cargo fmt --all -- --check'
 cargo fmt --all -- --check

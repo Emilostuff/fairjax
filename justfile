@@ -1,5 +1,6 @@
 setup:
     # Initialize cargo-husky
+    cargo clean
     cargo test -r
     cargo install cargo-nextest --locked
 
