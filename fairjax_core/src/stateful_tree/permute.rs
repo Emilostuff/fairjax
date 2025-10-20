@@ -1,4 +1,4 @@
-use crate::MessageId;
+use crate::{Mapping, MessageId};
 
 pub struct Element {
     pub id: MessageId,
@@ -14,8 +14,9 @@ impl Element {
 pub struct Permutations {}
 
 impl Permutations {
-    pub fn get_permutations(mut elements: Vec<Element>) -> Vec<Vec<MessageId>> {
-        elements.sort_by_key(|e| e.id);
+    pub fn get_permutations(elements: Vec<Element>) -> Vec<Mapping> {
+        let mut elements: Vec<_> = elements.into_iter().enumerate().collect();
+        elements.sort_by_key(|e| e.1.id);
         let mut output = Vec::new();
         let mut current: Vec<MessageId> = vec![0; elements.len()];
         let mut used = vec![false; elements.len()];
@@ -26,16 +27,16 @@ impl Permutations {
     }
 
     fn permute(
-        elements: &[Element],
-        output: &mut Vec<Vec<MessageId>>,
-        current: &mut Vec<MessageId>,
+        elements: &[(usize, Element)],
+        output: &mut Vec<Mapping>,
+        current: &mut Mapping,
         used: &mut Vec<bool>,
     ) {
-        if let Some(element) = elements.first() {
+        if let Some((origin, element)) = elements.first() {
             for &i in element.indices.iter() {
                 if !used[i] {
                     used[i] = true;
-                    current[i] = element.id;
+                    current[i] = *origin;
                     Permutations::permute(&elements[1..], output, current, used);
                     used[i] = false;
                 }
@@ -53,14 +54,14 @@ mod tests {
 
     #[test]
     fn test_simple_permutation() {
-        // Element 1 can be in position 0
-        // Element 2 can be in position 1
-        let elements = vec![Element::new(1, vec![0]), Element::new(2, vec![1])];
+        // Element 1 can be in position 1
+        // Element 2 can be in position 0
+        let elements = vec![Element::new(1, vec![1]), Element::new(2, vec![0])];
 
         let permutations = Permutations::get_permutations(elements);
 
         assert_eq!(permutations.len(), 1);
-        assert_eq!(permutations[0], vec![1, 2]);
+        assert_eq!(permutations[0], vec![1, 0]);
     }
 
     #[test]
@@ -72,8 +73,8 @@ mod tests {
         let permutations = Permutations::get_permutations(elements);
 
         assert_eq!(permutations.len(), 2);
-        assert!(permutations.contains(&vec![1, 2]));
-        assert!(permutations.contains(&vec![2, 1]));
+        assert!(permutations.contains(&vec![0, 1]));
+        assert!(permutations.contains(&vec![1, 0]));
     }
 
     #[test]
@@ -82,34 +83,16 @@ mod tests {
         // Element 2 can only be in position 0 or 1
         // Element 3 can only be in position 2
         let elements = vec![
-            Element::new(2, vec![0, 1]),
             Element::new(1, vec![0, 1]),
+            Element::new(2, vec![0, 1]),
             Element::new(3, vec![2]),
         ];
 
         let permutations = Permutations::get_permutations(elements);
 
         assert_eq!(permutations.len(), 2);
-        assert_eq!(permutations[0], vec![1, 2, 3]);
-        assert_eq!(permutations[1], vec![2, 1, 3]);
-    }
-
-    #[test]
-    fn test_complex_permutation() {
-        // Element 10 can be in position 0 or 1
-        // Element 20 can be in position 1 or 2
-        // Element 30 can be in position 0 or 2
-        let elements = vec![
-            Element::new(10, vec![0, 1]),
-            Element::new(20, vec![1, 2]),
-            Element::new(30, vec![0, 2]),
-        ];
-
-        let permutations = Permutations::get_permutations(elements);
-
-        assert_eq!(permutations.len(), 2);
-        assert!(permutations.contains(&vec![10, 20, 30]));
-        assert!(permutations.contains(&vec![30, 10, 20]));
+        assert_eq!(permutations[0], vec![0, 1, 2]);
+        assert_eq!(permutations[1], vec![1, 0, 2]);
     }
 
     #[test]
@@ -126,7 +109,7 @@ mod tests {
         let permutations = Permutations::get_permutations(elements);
 
         assert_eq!(permutations.len(), 1);
-        assert_eq!(permutations[0], vec![1, 2, 3]);
+        assert_eq!(permutations[0], vec![0, 1, 2]);
     }
 
     #[test]

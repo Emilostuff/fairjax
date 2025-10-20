@@ -31,22 +31,26 @@ impl CaseGenerator {
         }
     }
 
-    fn input_unpacking_code(&self, input_var: TokenStream) -> TokenStream {
+    fn input_unpacking_code(
+        &self,
+        input_var: TokenStream,
+        mapping_var: TokenStream,
+    ) -> TokenStream {
         let indices = 0..self.case.pattern.len();
         quote! {
-            #(#input_var[#indices]),*
+            #(#input_var[#mapping_var[#indices]]),*
         }
     }
 
     fn guard_fn_code(&self, guard_ident: Ident) -> TokenStream {
-        let unpacking = self.input_unpacking_code(quote!(messages));
+        let unpacking = self.input_unpacking_code(quote!(messages), quote!(mapping));
         let pattern = self.generate_full_pattern();
         let guard = self.case.guard.clone();
         let message_type = self.message_type.clone();
         let span = guard.span();
 
         quote_spanned! {span=>
-            fn #guard_ident(messages: &Vec<&#message_type>) -> fairjax_core::GuardEval {
+            fn #guard_ident(messages: &Vec<&#message_type>, mapping: &fairjax_core::Mapping) -> fairjax_core::GuardEval {
                 match (#unpacking) {
                     (#pattern) => if #guard {
                             fairjax_core::GuardEval::True
@@ -125,7 +129,7 @@ impl CaseGenerator {
     pub fn generate_action_code(&self) -> TokenStream {
         let pattern = self.pattern_match_code();
         let body = &self.case.body;
-        let unpacking = self.input_unpacking_code(self.input_var.clone());
+        let unpacking = self.input_unpacking_code(self.input_var.clone(), quote!(mapping));
 
         quote! {
             match (#unpacking) {
@@ -139,31 +143,7 @@ impl CaseGenerator {
 }
 
 #[cfg(test)]
-mod declaration_tests {
-    use super::*;
-    use crate::utils::compare_token_streams;
-    use proc_macro2::{Ident, Span};
-    use quote::quote;
-
-    #[test]
-    fn test_input_unpacking_code() {
-        let generator = CaseGenerator::new(
-            Case::new(quote!(A && B && C), quote!(), quote!()).unwrap(),
-            0,
-            Ident::new("x", Span::call_site()),
-            Ident::new("y", Span::call_site()),
-            quote!(),
-        );
-
-        let output = generator.input_unpacking_code(quote!(input));
-        let expected = quote!(input[0usize], input[1usize], input[2usize]);
-
-        compare_token_streams(&expected, &output);
-    }
-}
-
-#[cfg(test)]
-mod action_tests {
+mod tests {
     use super::*;
     use crate::utils::compare_token_streams;
     use proc_macro2::{Ident, Span};
@@ -179,8 +159,12 @@ mod action_tests {
             quote!(input),
         );
 
-        let output = generator.input_unpacking_code(quote!(input));
-        let expected = quote!(input[0usize], input[1usize], input[2usize]);
+        let output = generator.input_unpacking_code(quote!(input), quote!(mapping));
+        let expected = quote!(
+            input[mapping[0usize]],
+            input[mapping[1usize]],
+            input[mapping[2usize]]
+        );
 
         compare_token_streams(&expected, &output);
     }
@@ -219,7 +203,7 @@ mod action_tests {
         let output = generator.generate_action_code();
 
         let expected = quote! {
-            match (input[0usize], input[1usize], input[2usize]) {
+            match (input[mapping[0usize]], input[mapping[1usize]], input[mapping[2usize]]) {
                 (A(a, b), B(_, c), C(d)) => {
                     println!("Success");
                 },

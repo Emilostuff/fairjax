@@ -1,4 +1,4 @@
-use super::{CaseHandler, GuardFn, Message, MessageId, Store};
+use super::{CaseHandler, GuardFn, Mapping, Message, MessageId, Store};
 use crate::GuardEval;
 use itertools::Itertools;
 
@@ -17,12 +17,16 @@ impl<M: Message> BruteForceMatcher<M> {
         }
     }
 
-    pub fn try_all_slices_in_sorted_lex_order(&self, store: &Store<M>) -> Option<Vec<MessageId>> {
+    pub fn try_all_slices_in_sorted_lex_order(
+        &self,
+        store: &Store<M>,
+    ) -> Option<(Vec<MessageId>, Mapping)> {
         for message_set in self.message_ids.iter().combinations(self.patterns_size) {
             for slice in message_set.iter().permutations(self.patterns_size) {
                 let message_refs: Vec<_> = slice.iter().map(|id| &store[id]).collect();
-                if (self.guard_fn)(&message_refs) == GuardEval::True {
-                    return Some(slice.iter().map(|&&&i| i).collect());
+                let mapping = (0..slice.len()).collect();
+                if (self.guard_fn)(&message_refs, &mapping) == GuardEval::True {
+                    return Some((slice.iter().map(|&&&i| i).collect(), mapping));
                 }
             }
         }
@@ -31,7 +35,12 @@ impl<M: Message> BruteForceMatcher<M> {
 }
 
 impl<M: Message> CaseHandler<M> for BruteForceMatcher<M> {
-    fn consume(&mut self, _message: &M, id: MessageId, store: &Store<M>) -> Option<Vec<MessageId>> {
+    fn consume(
+        &mut self,
+        _message: &M,
+        id: MessageId,
+        store: &Store<M>,
+    ) -> Option<(Vec<MessageId>, Mapping)> {
         self.message_ids.push(id);
         self.try_all_slices_in_sorted_lex_order(store)
     }
@@ -58,9 +67,14 @@ mod tests {
             static TRIED_SLICES: RefCell<Vec<[usize; 3]>> = RefCell::new(Vec::new());
         }
 
-        pub fn guard_fn(_messages: &Vec<&Msg>) -> GuardEval {
-            TRIED_SLICES
-                .with_borrow_mut(|ts| ts.push([_messages[0].0, _messages[1].0, _messages[2].0]));
+        pub fn guard_fn(messages: &Vec<&Msg>, mapping: &Mapping) -> GuardEval {
+            TRIED_SLICES.with_borrow_mut(|ts| {
+                ts.push([
+                    messages[mapping[0]].0,
+                    messages[mapping[1]].0,
+                    messages[mapping[2]].0,
+                ])
+            });
             GuardEval::False
         }
 
@@ -95,8 +109,9 @@ mod tests {
             static TRIED_SLICES: RefCell<Vec<[usize; 2]>> = RefCell::new(Vec::new());
         }
 
-        pub fn guard_fn(_messages: &Vec<&Msg>) -> GuardEval {
-            TRIED_SLICES.with_borrow_mut(|ts| ts.push([_messages[0].0, _messages[1].0]));
+        pub fn guard_fn(messages: &Vec<&Msg>, mapping: &Mapping) -> GuardEval {
+            TRIED_SLICES
+                .with_borrow_mut(|ts| ts.push([messages[mapping[0]].0, messages[mapping[1]].0]));
             GuardEval::False
         }
 

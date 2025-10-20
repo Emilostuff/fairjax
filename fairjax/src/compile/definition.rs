@@ -35,6 +35,7 @@ impl JoinDefinitionGenerator {
 
     fn action_code(&self, match_result: TokenStream) -> TokenStream {
         let input_var = quote!(input);
+        let mapping_var = quote!(mapping);
         let actions = self
             .case_generators
             .iter()
@@ -44,7 +45,7 @@ impl JoinDefinitionGenerator {
 
         quote! {
             match #match_result {
-                #(Some((#indices, #input_var)) => {#actions}),*,
+                #(Some((#indices, #input_var, #mapping_var)) => {#actions}),*,
                 None => (),
                 _ => panic!(),
             }
@@ -136,16 +137,16 @@ mod join_definition_generator_tests {
         let output = generator.action_code(match_result.clone());
         let expected = quote! {
             match result {
-                Some((0usize, input)) => {
-                    match (input[0usize], input[1usize], input[2usize]) {
+                Some((0usize, input, mapping)) => {
+                    match (input[mapping[0usize]], input[mapping[1usize]], input[mapping[2usize]]) {
                         (A(a, b), B(_, c), C(d)) => {
                             println!("Success");
                         },
                         _ => panic!("not good")
                     }
                 },
-                Some((1usize, input)) => {
-                    match (input[0usize], input[1usize]) {
+                Some((1usize, input, mapping)) => {
+                    match (input[mapping[0usize]], input[mapping[1usize]]) {
                         (E(k, _), C(d)) => {
                             println!("More Success");
                         },

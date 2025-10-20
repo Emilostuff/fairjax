@@ -1,7 +1,7 @@
 pub mod permute;
 pub mod tree;
 
-use super::{CaseHandler, GuardFn, Message, MessageId, Store};
+use super::{CaseHandler, GuardFn, Mapping, Message, MessageId, Store};
 use permute::Element;
 use std::fmt::Debug;
 use tree::Node;
@@ -29,7 +29,12 @@ impl<P: PartialMatch<M>, M: Message> StatefulTreeMatcher<P, M> {
 }
 
 impl<P: PartialMatch<M>, M: Message> CaseHandler<M> for StatefulTreeMatcher<P, M> {
-    fn consume(&mut self, message: &M, id: MessageId, store: &Store<M>) -> Option<Vec<MessageId>> {
+    fn consume(
+        &mut self,
+        message: &M,
+        id: MessageId,
+        store: &Store<M>,
+    ) -> Option<(Vec<MessageId>, Mapping)> {
         let response = self.tree.ramification(message, id, store, &self.guard_fn);
         response
     }

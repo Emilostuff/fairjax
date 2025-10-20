@@ -1,4 +1,4 @@
-use crate::{CaseHandler, Message, MessageId, Store};
+use crate::{CaseHandler, Mapping, Message, MessageId, Store};
 use std::collections::HashMap;
 
 pub struct MailBox<M: Message> {
@@ -23,13 +23,13 @@ impl<M: Message> MailBox<M> {
         self.id_counter
     }
 
-    fn get_fairest_match(results: &Vec<Option<Vec<MessageId>>>) -> Option<usize> {
+    fn get_fairest_match(results: &Vec<Option<(Vec<MessageId>, Mapping)>>) -> Option<usize> {
         // find size of longest vec
         let mut matches = results
             .iter()
             .enumerate()
             .filter_map(|e| match e {
-                (i, Some(v)) => Some((i, v.clone())),
+                (i, Some((v, _))) => Some((i, v.clone())),
                 _ => None,
             })
             .collect::<Vec<_>>();
@@ -68,7 +68,7 @@ impl<M: Message> MailBox<M> {
         }
     }
 
-    pub fn consume(&mut self, message: M) -> Option<(usize, Vec<M>)> {
+    pub fn consume(&mut self, message: M) -> Option<(usize, Vec<M>, Mapping)> {
         // Generate new id for incoming message
         let id = self.create_id();
 
@@ -84,7 +84,7 @@ impl<M: Message> MailBox<M> {
 
         // Find fairest match across cases
         let fairest_match = Self::get_fairest_match(&matches)?;
-        let matched_message_ids = matches[fairest_match].as_ref().unwrap();
+        let (matched_message_ids, mapping) = matches[fairest_match].as_ref().unwrap();
 
         // Extract actual messages
         let matched_messages: Vec<M> = matched_message_ids
@@ -102,6 +102,6 @@ impl<M: Message> MailBox<M> {
             case.remove(&matched_message_ids);
         }
 
-        Some((fairest_match, matched_messages))
+        Some((fairest_match, matched_messages, mapping.clone()))
     }
 }

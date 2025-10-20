@@ -1,6 +1,6 @@
 use super::PartialMatch;
 use super::permute::Permutations;
-use crate::{GuardEval, GuardFn, MessageId, Store};
+use crate::{GuardEval, GuardFn, Mapping, MessageId, Store};
 use std::fmt::Debug;
 
 #[derive(Default)]
@@ -25,7 +25,7 @@ impl<P: PartialMatch<M> + Debug + Default, M: Clone> Node<P, M> {
         id: MessageId,
         store: &Store<M>,
         guard_fn: &GuardFn<M>,
-    ) -> Option<Vec<MessageId>> {
+    ) -> Option<(Vec<MessageId>, Mapping)> {
         if let Some(new_group) = self.match_group.extend(&message, id) {
             // Run ramification DFS style
             for child in &mut self.children {
@@ -36,15 +36,17 @@ impl<P: PartialMatch<M> + Debug + Default, M: Clone> Node<P, M> {
 
             // Check if match is complete (i.e. not partial)
             if new_group.is_complete() {
+                let message_ids = new_group.message_ids();
+
+                let messages: Vec<_> = message_ids.iter().map(|id| &store[id]).collect();
+
                 // Create permutation elements and get all message permutations
                 let permutations = Permutations::get_permutations(new_group.to_elements());
 
                 // Find fairest match that satisfies guard
                 for permutation in permutations {
-                    let message_refs: Vec<_> = permutation.iter().map(|id| &store[id]).collect();
-
-                    match guard_fn(&message_refs) {
-                        GuardEval::True => return Some(permutation),
+                    match guard_fn(&messages, &permutation) {
+                        GuardEval::True => return Some((message_ids, permutation)),
                         GuardEval::False => continue,
                         GuardEval::Mismatch => unreachable!(),
                     }
