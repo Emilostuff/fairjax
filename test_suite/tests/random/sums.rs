@@ -1,8 +1,8 @@
 use test_suite::scenarios::sums::{Msg, generate_random_messages};
 
 // Declare runners for each strategy
-test_suite::declare_sum!(brute_force, BruteForce);
-test_suite::declare_sum!(stateful, StatefulTree);
+test_suite::declare_sums!(brute_force, BruteForce);
+test_suite::declare_sums!(stateful, StatefulTree);
 
 /// Declare top-level test runner
 fn run(n_runs: usize, size: usize) {
