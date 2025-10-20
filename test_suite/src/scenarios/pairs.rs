@@ -1,5 +1,4 @@
 use fairjax::*;
-use rand::rng;
 use rand::seq::SliceRandom;
 
 #[derive(Clone, Debug, Copy, PartialEq, Message)]
@@ -32,8 +31,9 @@ macro_rules! declare_pairs {
     };
 }
 
-pub fn generate_random_messages(size: usize) -> Vec<Msg> {
+pub fn generate_random_messages(size: usize, seed: Option<u64>) -> Vec<Msg> {
+    let mut rng = crate::get_rng(seed);
     let mut messages: Vec<_> = (0..size).flat_map(|i| [A(i), B(i)]).collect();
-    messages.shuffle(&mut rng());
+    messages.shuffle(&mut rng);
     messages
 }

@@ -1,6 +1,5 @@
 use fairjax::*;
 use rand::Rng;
-use rand::rng;
 
 #[derive(Clone, Debug, Copy, PartialEq, Message)]
 pub enum Msg {
@@ -31,8 +30,9 @@ macro_rules! declare_transitive {
     };
 }
 
-pub fn generate_random_messages(size: usize) -> Vec<Msg> {
+pub fn generate_random_messages(size: usize, seed: Option<u64>) -> Vec<Msg> {
+    let mut rng = crate::get_rng(seed);
     (0..(size * 3))
-        .map(|_| A(rng().random_range(-500..500)))
+        .map(|_| A(rng.random_range(-500..500)))
         .collect()
 }

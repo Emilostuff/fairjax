@@ -7,7 +7,7 @@ test_suite::declare_transitive!(stateful, StatefulTree);
 /// Declare top-level test runner
 fn run(n_runs: usize, size: usize) {
     for _ in 0..n_runs {
-        let messages = generate_random_messages(size);
+        let messages = generate_random_messages(size, None);
         crate::compare("transitive", messages, brute_force, stateful);
     }
 }

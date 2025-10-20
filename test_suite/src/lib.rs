@@ -5,6 +5,8 @@ pub mod scenarios {
     pub mod transitive;
 }
 
+use rand::SeedableRng;
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct MatchTrace<T: PartialEq + Clone + std::fmt::Debug> {
     pattern_no: usize,
@@ -23,5 +25,13 @@ impl<T: PartialEq + Clone + std::fmt::Debug> MatchTrace<T> {
 impl<T: PartialEq + Clone + std::fmt::Debug> std::fmt::Display for MatchTrace<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}: {:?}", self.pattern_no, self.messages)
+    }
+}
+
+pub fn get_rng(seed: Option<u64>) -> rand::rngs::StdRng {
+    if let Some(seed) = seed {
+        rand::rngs::StdRng::seed_from_u64(seed)
+    } else {
+        rand::rngs::StdRng::from_os_rng()
     }
 }

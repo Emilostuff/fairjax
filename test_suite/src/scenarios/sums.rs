@@ -1,6 +1,5 @@
 use fairjax::*;
 use rand::Rng;
-use rand::rng;
 
 #[derive(Clone, Debug, Copy, PartialEq, Message)]
 pub enum Msg {
@@ -43,6 +42,7 @@ macro_rules! declare_sum {
     };
 }
 
-pub fn generate_random_messages(size: usize) -> Vec<Msg> {
-    (0..size).map(|_| A(rng().random_range(1..=10))).collect()
+pub fn generate_random_messages(size: usize, seed: Option<u64>) -> Vec<Msg> {
+    let mut rng = crate::get_rng(seed);
+    (0..size).map(|_| A(rng.random_range(1..=10))).collect()
 }

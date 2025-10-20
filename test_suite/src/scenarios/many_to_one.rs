@@ -1,6 +1,6 @@
 use fairjax::*;
+use rand::Rng;
 use rand::seq::SliceRandom;
-use rand::{Rng, rng};
 
 #[derive(Clone, Debug, Copy, PartialEq, Message)]
 pub enum Msg {
@@ -42,28 +42,30 @@ macro_rules! declare_many_to_one {
     };
 }
 
-pub fn generate_random_messages(size: usize) -> Vec<Msg> {
+pub fn generate_random_messages(size: usize, seed: Option<u64>) -> Vec<Msg> {
+    let mut rng = crate::get_rng(seed);
+
     let mut invoices = Vec::<Msg>::new();
     let mut expenses = Vec::<Msg>::new();
 
     for _ in 0..size {
-        match rng().random_range(0..3) {
+        match rng.random_range(0..3) {
             0 => {
-                let val = rng().random_range(0..MAX_SINGLE_VAL);
+                let val = rng.random_range(0..MAX_SINGLE_VAL);
                 expenses.push(E(val));
                 invoices.push(I(val));
             }
             1 => {
-                let val0 = rng().random_range(0..MAX_SINGLE_VAL);
-                let val1 = rng().random_range(0..MAX_SINGLE_VAL);
+                let val0 = rng.random_range(0..MAX_SINGLE_VAL);
+                let val1 = rng.random_range(0..MAX_SINGLE_VAL);
                 expenses.push(E(val0));
                 expenses.push(E(val1));
                 invoices.push(I(val0 + val1));
             }
             _ => {
-                let val0 = rng().random_range(0..MAX_SINGLE_VAL);
-                let val1 = rng().random_range(0..MAX_SINGLE_VAL);
-                let val2 = rng().random_range(0..MAX_SINGLE_VAL);
+                let val0 = rng.random_range(0..MAX_SINGLE_VAL);
+                let val1 = rng.random_range(0..MAX_SINGLE_VAL);
+                let val2 = rng.random_range(0..MAX_SINGLE_VAL);
                 expenses.push(E(val0));
                 expenses.push(E(val1));
                 expenses.push(E(val2));
@@ -72,7 +74,7 @@ pub fn generate_random_messages(size: usize) -> Vec<Msg> {
         }
     }
 
-    expenses.shuffle(&mut rng());
+    expenses.shuffle(&mut rng);
     invoices.extend(expenses);
     invoices
 }
