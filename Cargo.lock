@@ -510,6 +510,7 @@ dependencies = [
  "criterion",
  "fairjax",
  "fairjax_core",
+ "once_cell",
  "rand",
 ]
 

@@ -1,36 +1,38 @@
-use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use std::hint::black_box;
+use criterion::{Criterion, criterion_group, criterion_main};
+use once_cell::sync::Lazy;
+use rand::{Rng, SeedableRng};
+use std::{hint::black_box, ops::Range, time::Duration};
+use test_suite::scenarios::pairs::{Msg, generate_random_messages};
 
-pub fn sums(c: &mut Criterion) {
-    use test_suite::scenarios::sums::{Msg, generate_random_messages};
-    test_suite::declare_sums!(run_sums, StatefulTree);
+test_suite::declare_sums!(run_sums, StatefulTree);
 
-    let mut group = c.benchmark_group("Sums");
-    for size in [1, 2, 3, 4, 5].iter() {
-        let mut i = 0;
-        group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &size| {
-            b.iter_with_setup(
-                || {
-                    i += 1;
-                    generate_random_messages(size, Some(i))
-                },
-                |msgs| run_sums(black_box(&msgs)),
-            );
-        });
-    }
-    group.finish();
-}
+const SEED: u64 = 123;
+const N_CASES: usize = 200;
+const SIZE_RANGE: Range<usize> = 15..30;
 
-fn custom_criterion() -> Criterion {
-    Criterion::default()
-        .measurement_time(std::time::Duration::from_secs(1))
-        .warm_up_time(std::time::Duration::from_millis(200))
-        .sample_size(100)
+pub static INPUT: Lazy<Vec<Vec<Msg>>> = Lazy::new(|| {
+    let mut rng = rand::rngs::StdRng::seed_from_u64(SEED);
+    (0..N_CASES)
+        .map(|_| generate_random_messages(rng.random_range(SIZE_RANGE), Some(rng.random())))
+        .collect()
+});
+
+pub fn bench_sums(c: &mut Criterion) {
+    c.bench_function("Sums", |b| {
+        b.iter(|| {
+            for case in INPUT.iter() {
+                run_sums(black_box(&case));
+            }
+        })
+    });
 }
 
 criterion_group! {
     name = benches;
-    config = custom_criterion();
-    targets = sums
+    config = Criterion::default()
+        .warm_up_time(Duration::from_secs(3))
+        .measurement_time(Duration::from_secs(5))
+        .sample_size(100);
+    targets = bench_sums
 }
 criterion_main!(benches);
