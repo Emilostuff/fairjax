@@ -14,20 +14,20 @@ test-heavy:
     cargo nextest run -r --run-ignored=only
 
 baseline:
-    for f in test_suite/benches/*.rs; do \
+    @for f in test_suite/benches/*.rs; do \
         name=$(basename "$f" .rs); \
-        echo "===> Setting baseline for: $name"; \
+        echo "\033[1mSetting baseline for: $name\033[0m"; \
         cargo bench --bench "$name" -- --save-baseline baseline; \
     done
 
 bench benchname="":
-    if [ -n "{{benchname}}" ]; then \
-        echo "===> Benchmarking: {{benchname}}"; \
+    @if [ -n "{{benchname}}" ]; then \
+    echo "\033[1mBenchmarking: {{benchname}}\033[0m"; \
         cargo bench --bench "{{benchname}}" -- --baseline baseline; \
     else \
         for f in test_suite/benches/*.rs; do \
             name=$(basename "$f" .rs); \
-            echo "===> Benchmarking: $name"; \
+            echo "\033[1mBenchmarking: $name\033[0m"; \
             cargo bench --bench "$name" -- --baseline baseline; \
         done; \
     fi
