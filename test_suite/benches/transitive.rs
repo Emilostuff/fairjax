@@ -8,7 +8,7 @@ test_suite::declare_transitive!(run_transitive, StatefulTree);
 
 const SEED: u64 = 123;
 const N_CASES: usize = 200;
-const SIZE_RANGE: Range<usize> = 30..60;
+const SIZE_RANGE: Range<usize> = 30..50;
 
 pub static INPUT: Lazy<Vec<Vec<Msg>>> = Lazy::new(|| {
     let mut rng = rand::rngs::StdRng::seed_from_u64(SEED);
