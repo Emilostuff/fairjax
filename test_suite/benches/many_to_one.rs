@@ -1,4 +1,4 @@
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{Criterion, Throughput, criterion_group, criterion_main};
 use once_cell::sync::Lazy;
 use rand::{Rng, SeedableRng};
 use std::{hint::black_box, ops::Range, time::Duration};
@@ -18,13 +18,18 @@ pub static INPUT: Lazy<Vec<Vec<Msg>>> = Lazy::new(|| {
 });
 
 pub fn bench_many_to_one(c: &mut Criterion) {
-    c.bench_function("Many To One", |b| {
+    let mut group = c.benchmark_group("Random");
+    group.throughput(Throughput::Elements(
+        INPUT.iter().flat_map(|v| v).collect::<Vec<&Msg>>().len() as u64,
+    ));
+    group.bench_function("Many To One", |b| {
         b.iter(|| {
             for case in INPUT.iter() {
                 run_many_to_one(black_box(&case));
             }
         })
     });
+    group.finish();
 }
 
 criterion_group! {
