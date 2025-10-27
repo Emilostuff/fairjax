@@ -24,7 +24,7 @@ pub fn test_many_to_one_mini() {
 #[ignore]
 /// Extensive test to be run on-demand
 pub fn test_many_to_one_extensive() {
-    let runs = 20;
+    let runs = 30;
     let size = 15;
     run(runs, size);
 }

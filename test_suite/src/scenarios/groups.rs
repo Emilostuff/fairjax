@@ -1,0 +1,51 @@
+use fairjax::*;
+use rand::seq::SliceRandom;
+
+#[derive(Clone, Debug, Copy, PartialEq, Message)]
+pub enum Msg {
+    A(usize),
+    B(usize),
+    C(usize),
+    D(usize),
+    E(usize),
+}
+
+use Msg::*;
+
+#[macro_export]
+macro_rules! declare_groups {
+    ($fn_name:ident, $strategy:ident) => {
+        fn $fn_name(messages: &[Msg]) -> Vec<test_suite::MatchTrace<Msg>> {
+            let mut mailbox: fairjax_core::MailBox<Msg> = fairjax_core::MailBox::new();
+            let mut output = vec![];
+
+            use Msg::*;
+            for msg in messages {
+                fairjax::match_fairest_case!(
+                    Msg,
+                    msg >> mailbox,
+                    case::<$strategy>(
+                        A(a) && B(b) && C(c) && D(d) && E(e),
+                        a == b && b == c && c == d && d == e,
+                        {
+                            output.push(test_suite::MatchTrace::new(
+                                0,
+                                vec![A(a), B(b), C(c), D(d), E(e)],
+                            ));
+                        }
+                    )
+                );
+            }
+            output
+        }
+    };
+}
+
+pub fn generate_random_messages(size: usize, seed: Option<u64>) -> Vec<Msg> {
+    let mut rng = crate::get_rng(seed);
+    let mut messages: Vec<_> = (0..size)
+        .flat_map(|i| [A(i), B(i), C(i), D(i), E(i)])
+        .collect();
+    messages.shuffle(&mut rng);
+    messages
+}

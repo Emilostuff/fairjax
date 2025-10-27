@@ -32,3 +32,19 @@ harness = false
 [[bench]]
 name = "many_to_one"
 harness = false
+
+[[bench]]
+name = "permutations"
+harness = false
+
+[[bench]]
+name = "workers"
+harness = false
+
+[[bench]]
+name = "groups"
+harness = false
+
+[[bench]]
+name = "equal_cases"
+harness = false
