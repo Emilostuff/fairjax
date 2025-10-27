@@ -12,20 +12,11 @@ mod parse {
     pub mod pattern;
     pub mod strategy;
 }
-mod derive;
+
 mod utils;
 
-use proc_macro::TokenStream;
-use syn::{DeriveInput, parse_macro_input};
-
-#[proc_macro_derive(Message)]
-pub fn derive_message_trait(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    derive::expand_derive_message_trait(&input).into()
-}
-
 #[proc_macro]
-pub fn match_fairest_case(input: TokenStream) -> TokenStream {
+pub fn match_fairest_case(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     match parse::definition::JoinDefinition::parse(input.into()) {
         Ok(def) => compile::definition::JoinDefinitionGenerator::new(def)
             .generate()

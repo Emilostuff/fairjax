@@ -10,20 +10,12 @@ pub struct JoinDefinitionGenerator {
 
 impl JoinDefinitionGenerator {
     pub fn new(def: JoinDefinition) -> Self {
-        let input_var = quote!(input);
-
         let case_generators = def
             .cases
             .iter()
             .enumerate()
             .map(|(i, c)| {
-                CaseGenerator::new(
-                    c.clone(),
-                    i,
-                    def.message_type.clone(),
-                    def.mailbox.clone(),
-                    input_var.clone(),
-                )
+                CaseGenerator::new(c.clone(), i, def.message_type.clone(), def.mailbox.clone())
             })
             .collect();
 
@@ -34,8 +26,6 @@ impl JoinDefinitionGenerator {
     }
 
     fn action_code(&self, match_result: TokenStream) -> TokenStream {
-        let input_var = quote!(input);
-        let mapping_var = quote!(mapping);
         let actions = self
             .case_generators
             .iter()
@@ -44,9 +34,8 @@ impl JoinDefinitionGenerator {
         let indices = 0..actions.len();
 
         quote! {
-            match #match_result {
-                #(Some((#indices, #input_var, #mapping_var)) => {#actions}),*,
-                None => (),
+            match #match_result.case_id() {
+                #(&fairjax_core::CaseId(#indices) => {#actions}),*,
                 _ => panic!(),
             }
         }
@@ -89,16 +78,16 @@ impl JoinDefinitionGenerator {
                 #mailbox_ident.init();
             }
 
-            let #match_result = #mailbox_ident.consume(#msg.clone());
-
             // Run action if match was found
-            #action_code
+            if let Some(#match_result) = #mailbox_ident.process(#msg) {
+                #action_code
+            }
         }
     }
 }
 
 #[cfg(test)]
-mod join_definition_generator_tests {
+mod tests {
     use super::*;
     use crate::parse::case::Case;
     use crate::utils::compare_token_streams;
@@ -126,9 +115,9 @@ mod join_definition_generator_tests {
         .unwrap();
 
         let generator = JoinDefinitionGenerator::new(JoinDefinition {
-            message_type: Ident::new("x", Span::call_site()),
-            mailbox: Ident::new("y", Span::call_site()),
-            message: Ident::new("z", Span::call_site()),
+            message_type: Ident::new("dont_care_1", Span::call_site()),
+            mailbox: Ident::new("dont_care_2", Span::call_site()),
+            message: Ident::new("dont_care_3", Span::call_site()),
             cases: vec![case_0, case_1],
         });
 
@@ -136,24 +125,23 @@ mod join_definition_generator_tests {
 
         let output = generator.action_code(match_result.clone());
         let expected = quote! {
-            match result {
-                Some((0usize, input, mapping)) => {
-                    match (input[mapping[0usize]], input[mapping[1usize]], input[mapping[2usize]]) {
+            match result.case_id() {
+                &fairjax_core::CaseId(0usize) => {
+                    match result.into_3_tuple() {
                         (A(a, b), B(_, c), C(d)) => {
                             println!("Success");
                         },
                         _ => panic!("not good")
                     }
                 },
-                Some((1usize, input, mapping)) => {
-                    match (input[mapping[0usize]], input[mapping[1usize]]) {
+                &fairjax_core::CaseId(1usize) => {
+                    match result.into_2_tuple() {
                         (E(k, _), C(d)) => {
                             println!("More Success");
                         },
                         _ => panic!("not good")
                     }
                 },
-                None => (),
                 _ => panic!(),
             }
         };

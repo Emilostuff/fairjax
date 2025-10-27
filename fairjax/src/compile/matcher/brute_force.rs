@@ -21,7 +21,7 @@ impl BruteForceMatcherGenerator {
         let guard_ident = self.guard_ident.clone();
         let message_type = self.message_type.clone();
         let pattern_size = self.pattern_size;
-        return quote!(fairjax_core::brute_force::BruteForceMatcher::<#message_type>::new(#guard_ident, #pattern_size));
+        return quote!(fairjax_core::strategies::brute_force::BruteForceMatcher::<#pattern_size, #message_type>::new(#guard_ident));
     }
 
     pub fn generate_declaration_code(&self) -> TokenStream {

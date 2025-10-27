@@ -1,7 +1,6 @@
-use fairjax::*;
 use rand::Rng;
 
-#[derive(Clone, Debug, Copy, PartialEq, Message)]
+#[derive(Clone, Debug, Copy, PartialEq)]
 pub enum Msg {
     A(i32),
 }
@@ -16,7 +15,7 @@ macro_rules! declare_transitive {
             let mut output = vec![];
 
             use Msg::*;
-            for msg in messages {
+            for msg in messages.to_owned() {
                 fairjax::match_fairest_case!(
                     Msg,
                     msg >> mailbox,

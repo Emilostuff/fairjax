@@ -86,7 +86,7 @@ impl StatefulTreeMatcherGenerator {
         let element_mappings = message_idents.iter().enumerate().map(|(index, ident)| {
             let positions = &message_variant_positions[ident];
 
-            quote!(fairjax_core::stateful_tree::permute::Element::new(self.messages[#index].unwrap(), vec![#(#positions),*]))
+            quote!(fairjax_core::strategies::stateful_tree::permute::Element::new(self.messages[#index].unwrap(), vec![#(#positions),*]))
         });
 
         quote!(#(#element_mappings),*)
@@ -98,8 +98,9 @@ impl StatefulTreeMatcherGenerator {
     pub fn generate_init_code(&self) -> TokenStream {
         let struct_ident = self.struct_ident.clone();
         let guard_ident = self.guard_ident.clone();
+        let pattern_len = self.pattern.0.len();
         let message_type = self.message_type.clone();
-        return quote!(fairjax_core::stateful_tree::StatefulTreeMatcher::<#struct_ident, #message_type>::new(#guard_ident));
+        return quote!(fairjax_core::strategies::stateful_tree::StatefulTreeMatcher::<#pattern_len, #struct_ident, #message_type>::new(#guard_ident));
     }
 
     pub fn generate_declaration_code(&self) -> TokenStream {
@@ -118,7 +119,7 @@ impl StatefulTreeMatcherGenerator {
                 counter: usize,
             }
 
-            impl fairjax_core::stateful_tree::PartialMatch<#message_type> for #struct_ident {
+            impl fairjax_core::strategies::stateful_tree::PartialMatch<#pattern_len, #message_type> for #struct_ident {
                 fn extend(&self, message: &#message_type, id: fairjax_core::MessageId) -> Option<Self> {
                     let mut new_group = self.clone();
                     let (i, j) = match message {
@@ -140,14 +141,12 @@ impl StatefulTreeMatcherGenerator {
                     self.counter >= #pattern_len
                 }
 
-                fn message_ids(&self) -> Vec<fairjax_core::MessageId> {
-                    self.messages.iter().filter_map(|x| *x).collect()
+                fn message_ids(&self) -> &[Option<fairjax_core::MessageId>; #pattern_len] {
+                    &self.messages
                 }
 
-                fn to_elements(&self) -> Vec<fairjax_core::stateful_tree::permute::Element> {
-                    vec![
-                        #element_mappings
-                    ]
+                fn to_elements(&self) -> [fairjax_core::strategies::stateful_tree::permute::Element; #pattern_len] {
+                    [#element_mappings]
                 }
             }
         }
@@ -181,7 +180,7 @@ mod pattern_codegen_tests {
                 counter: usize,
             }
 
-            impl fairjax_core::stateful_tree::PartialMatch<MyMessage> for FairjaxGenerated0 {
+            impl fairjax_core::strategies::stateful_tree::PartialMatch<3usize, MyMessage> for FairjaxGenerated0 {
                 fn extend(&self, message: &MyMessage, id: fairjax_core::MessageId) -> Option<Self> {
                     let mut new_group = self.clone();
                     let (i, j) = match message {
@@ -204,15 +203,15 @@ mod pattern_codegen_tests {
                     self.counter >= 3usize
                 }
 
-                fn message_ids(&self) -> Vec<fairjax_core::MessageId> {
-                    self.messages.iter().filter_map(|x| *x).collect()
+                fn message_ids(&self) -> &[Option<fairjax_core::MessageId>; 3usize] {
+                    &self.messages
                 }
 
-                fn to_elements(&self) -> Vec<fairjax_core::stateful_tree::permute::Element> {
-                    vec![
-                        fairjax_core::stateful_tree::permute::Element::new(self.messages[0usize].unwrap(), vec![0usize, 2usize]),
-                        fairjax_core::stateful_tree::permute::Element::new(self.messages[1usize].unwrap(), vec![0usize, 2usize]),
-                        fairjax_core::stateful_tree::permute::Element::new(self.messages[2usize].unwrap(), vec![1usize])
+                fn to_elements(&self) -> [fairjax_core::strategies::stateful_tree::permute::Element; 3usize] {
+                    [
+                        fairjax_core::strategies::stateful_tree::permute::Element::new(self.messages[0usize].unwrap(), vec![0usize, 2usize]),
+                        fairjax_core::strategies::stateful_tree::permute::Element::new(self.messages[1usize].unwrap(), vec![0usize, 2usize]),
+                        fairjax_core::strategies::stateful_tree::permute::Element::new(self.messages[2usize].unwrap(), vec![1usize])
                     ]
                 }
             }

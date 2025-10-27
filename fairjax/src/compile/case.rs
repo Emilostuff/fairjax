@@ -11,23 +11,15 @@ pub struct CaseGenerator {
     case_index: usize,
     message_type: Ident,
     mailbox_ident: Ident,
-    input_var: TokenStream,
 }
 
 impl CaseGenerator {
-    pub fn new(
-        case: Case,
-        case_index: usize,
-        message_type: Ident,
-        mailbox_ident: Ident,
-        input_var: TokenStream,
-    ) -> Self {
+    pub fn new(case: Case, case_index: usize, message_type: Ident, mailbox_ident: Ident) -> Self {
         Self {
             case,
             case_index,
             message_type,
             mailbox_ident,
-            input_var,
         }
     }
 
@@ -38,7 +30,7 @@ impl CaseGenerator {
     ) -> TokenStream {
         let indices = 0..self.case.pattern.len();
         quote! {
-            #(#input_var[#mapping_var[#indices]]),*
+            #(#input_var[#mapping_var.get(#indices)]),*
         }
     }
 
@@ -48,16 +40,13 @@ impl CaseGenerator {
         let guard = self.case.guard.clone();
         let message_type = self.message_type.clone();
         let span = guard.span();
+        let pattern_len = self.case.pattern.len();
 
         quote_spanned! {span=>
-            fn #guard_ident(messages: &Vec<&#message_type>, mapping: &fairjax_core::Mapping) -> fairjax_core::GuardEval {
+            fn #guard_ident(messages: &[&#message_type; #pattern_len], mapping: &fairjax_core::Mapping<#pattern_len>) -> Option<bool> {
                 match (#unpacking) {
-                    (#pattern) => if #guard {
-                            fairjax_core::GuardEval::True
-                        } else {
-                            fairjax_core::GuardEval::False
-                        },
-                    _ => fairjax_core::GuardEval::Mismatch,
+                    (#pattern) => Some(#guard),
+                    _ => None,
                 }
             }
         }
@@ -129,10 +118,10 @@ impl CaseGenerator {
     pub fn generate_action_code(&self) -> TokenStream {
         let pattern = self.pattern_match_code();
         let body = &self.case.body;
-        let unpacking = self.input_unpacking_code(self.input_var.clone(), quote!(mapping));
+        let tuple_ident = format_ident!("into_{}_tuple", self.case.pattern.len());
 
         quote! {
-            match (#unpacking) {
+            match result.#tuple_ident() {
                 (#pattern) => {
                     #body
                 },
@@ -156,14 +145,13 @@ mod tests {
             0,
             Ident::new("x", Span::call_site()),
             Ident::new("y", Span::call_site()),
-            quote!(input),
         );
 
         let output = generator.input_unpacking_code(quote!(input), quote!(mapping));
         let expected = quote!(
-            input[mapping[0usize]],
-            input[mapping[1usize]],
-            input[mapping[2usize]]
+            input[mapping.get(0usize)],
+            input[mapping.get(1usize)],
+            input[mapping.get(2usize)]
         );
 
         compare_token_streams(&expected, &output);
@@ -176,7 +164,6 @@ mod tests {
             0,
             Ident::new("x", Span::call_site()),
             Ident::new("y", Span::call_site()),
-            quote!(input),
         );
 
         let output = generator.pattern_match_code();
@@ -197,13 +184,12 @@ mod tests {
             0,
             Ident::new("x", Span::call_site()),
             Ident::new("y", Span::call_site()),
-            quote!(input),
         );
 
         let output = generator.generate_action_code();
 
         let expected = quote! {
-            match (input[mapping[0usize]], input[mapping[1usize]], input[mapping[2usize]]) {
+            match result.into_3_tuple() {
                 (A(a, b), B(_, c), C(d)) => {
                     println!("Success");
                 },
