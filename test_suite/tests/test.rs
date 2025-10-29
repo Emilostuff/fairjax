@@ -1,5 +1,3 @@
-#![allow(warnings)]
-use fairjax::*;
 use fairjax_core::MailBox;
 use test_suite::MatchTrace;
 

@@ -9,6 +9,11 @@ pub mod random {
     pub mod workers;
 }
 
+pub mod functional {
+    pub mod guard_constants;
+    pub mod guard_traditional;
+}
+
 use test_suite::MatchTrace;
 
 fn compare<T: PartialEq + Clone + std::fmt::Debug>(

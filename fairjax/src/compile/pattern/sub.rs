@@ -1,7 +1,7 @@
 use crate::parse::sub_pattern::{SubPattern, SubPatternDefinition};
 use proc_macro2::TokenStream;
 use quote::quote_spanned;
-use syn::{Pat, punctuated::Punctuated, spanned::Spanned};
+use syn::{Pat, PatRest, punctuated::Punctuated, spanned::Spanned, token::DotDot};
 
 pub trait SubPatternCodeGen {
     fn generate(sub_pattern: &dyn SubPattern, anonymous: bool) -> TokenStream;
@@ -27,14 +27,11 @@ impl SubPatternCodeGen for SubPatternCompiler {
             }
             SubPatternDefinition::Struct(mut s) => {
                 if anonymous {
-                    s.fields = Punctuated::from_iter(s.fields.iter().map(|field| {
-                        let mut field = field.clone();
-                        field.pat = Box::new(Pat::Wild(syn::PatWild {
-                            attrs: vec![],
-                            underscore_token: syn::token::Underscore::default(),
-                        }));
-                        field
-                    }));
+                    s.fields = Punctuated::new();
+                    s.rest = Some(PatRest {
+                        attrs: vec![],
+                        dot2_token: DotDot::default(),
+                    });
                 }
                 quote_spanned!(s.span() => #s)
             }
@@ -74,7 +71,7 @@ mod tests {
         }
     }
 
-    fn pat_struct(path: Path, fields: Vec<&str>) -> PatStruct {
+    fn pat_struct(path: Path, fields: Vec<&str>, rest: bool) -> PatStruct {
         PatStruct {
             attrs: vec![],
             qself: None,
@@ -86,7 +83,10 @@ mod tests {
                 colon_token: None,
                 pat: Box::new(Pat::Ident(pat_ident(name))),
             })),
-            rest: None,
+            rest: rest.then(|| PatRest {
+                attrs: vec![],
+                dot2_token: DotDot::default(),
+            }),
         }
     }
 
@@ -118,7 +118,7 @@ mod tests {
 
     #[test]
     fn test_generate_struct() {
-        let pat_tuple_struct = pat_struct(parse_quote!(Foo), vec!["a", "b"]);
+        let pat_tuple_struct = pat_struct(parse_quote!(Foo), vec!["a", "b"], false);
         let sub_pattern = SubPatternDefinition::Struct(pat_tuple_struct);
 
         let tokens = SubPatternCompiler::generate(&sub_pattern, false);
@@ -126,11 +126,29 @@ mod tests {
     }
 
     #[test]
+    fn test_generate_struct_partial_pattern() {
+        let pat_tuple_struct = pat_struct(parse_quote!(Foo), vec!["a"], true);
+        let sub_pattern = SubPatternDefinition::Struct(pat_tuple_struct);
+
+        let tokens = SubPatternCompiler::generate(&sub_pattern, false);
+        assert_tokens!(tokens, { Foo { a, .. } });
+    }
+
+    #[test]
     fn test_generate_struct_anonymus() {
-        let pat_tuple_struct = pat_struct(parse_quote!(Foo), vec!["a", "b"]);
+        let pat_tuple_struct = pat_struct(parse_quote!(Foo), vec!["a", "b"], false);
         let sub_pattern = SubPatternDefinition::Struct(pat_tuple_struct);
 
         let tokens = SubPatternCompiler::generate(&sub_pattern, true);
-        assert_tokens!(tokens, { Foo { _, _ } });
+        assert_tokens!(tokens, { Foo { .. } });
+    }
+
+    #[test]
+    fn test_generate_struct_anonymus_partial_pattern() {
+        let pat_tuple_struct = pat_struct(parse_quote!(Foo), vec!["a"], true);
+        let sub_pattern = SubPatternDefinition::Struct(pat_tuple_struct);
+
+        let tokens = SubPatternCompiler::generate(&sub_pattern, true);
+        assert_tokens!(tokens, { Foo { .. } });
     }
 }
