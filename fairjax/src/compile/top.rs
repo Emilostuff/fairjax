@@ -50,6 +50,9 @@ impl TopLevelCodeGen for TopLevel {
             if let Some(#match_result) = #mailbox.process(#incoming_message) {
                 #action_section
             }
+
+            // Return unit type
+            ()
         }
     }
 }
