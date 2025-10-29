@@ -24,7 +24,7 @@ pub fn test_sums_mini() {
 #[ignore]
 /// Extensive test to be run on-demand
 pub fn test_sums_extensive() {
-    let runs = 5000;
-    let size = 100;
+    let runs = 6000;
+    let size = 200;
     run(runs, size);
 }

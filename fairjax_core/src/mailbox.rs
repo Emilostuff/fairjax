@@ -149,7 +149,7 @@ mod tests {
                 String::from("2"),
                 String::from("5")
             ),
-            result.into_4_tuple()
+            result.into_4()
         );
 
         // Check that exactly the matched messages are removed from store

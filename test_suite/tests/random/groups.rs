@@ -24,7 +24,7 @@ pub fn test_groups_mini() {
 #[ignore]
 /// Extensive test to be run on-demand
 pub fn test_groups_extensive() {
-    let runs = 25;
-    let size = 5;
+    let runs = 40;
+    let size = 8;
     run(runs, size);
 }

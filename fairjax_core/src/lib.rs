@@ -24,9 +24,7 @@ pub use matching::matched_messages::MatchedMessages;
 pub type Store<M> = std::collections::HashMap<MessageId, M>;
 
 /// Guard function, for a case with C messages of type M in its pattern.
-/// Output is optional since the messages are not guaranteed to be compatible with the guard.
-/// Returns `Some(bool)` if the messages and mapping match the case pattern, otherwise `None`.
-pub type GuardFn<const C: usize, M> = fn(&[&M; C], &Mapping<C>) -> Option<bool>;
+pub type GuardFn<const C: usize, M> = fn(&[&M; C], &Mapping<C>) -> bool;
 
 /// Top interface for interacting with a case on messages of type M.
 /// K is the maximum pattern size across all cases.

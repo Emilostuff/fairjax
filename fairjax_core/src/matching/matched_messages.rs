@@ -8,8 +8,8 @@ pub struct MatchedMessages<M> {
     pub(super) messages: Vec<M>,
 }
 
-// Macro to generate tuple conversion methods using collect_tuple
-macro_rules! impl_tuple_method {
+// Macro to generate tuple conversion methods using collect
+macro_rules! impl_get_n_method {
     ($name:ident, $tuple:ty) => {
         pub fn $name(self) -> $tuple
         where
@@ -25,18 +25,20 @@ impl<M> MatchedMessages<M> {
         &self.case
     }
 
-    impl_tuple_method!(into_1_tuple, (M,));
-    impl_tuple_method!(into_2_tuple, (M, M));
-    impl_tuple_method!(into_3_tuple, (M, M, M));
-    impl_tuple_method!(into_4_tuple, (M, M, M, M));
-    impl_tuple_method!(into_5_tuple, (M, M, M, M, M));
-    impl_tuple_method!(into_6_tuple, (M, M, M, M, M, M));
-    impl_tuple_method!(into_7_tuple, (M, M, M, M, M, M, M));
-    impl_tuple_method!(into_8_tuple, (M, M, M, M, M, M, M, M));
-    impl_tuple_method!(into_9_tuple, (M, M, M, M, M, M, M, M, M));
-    impl_tuple_method!(into_10_tuple, (M, M, M, M, M, M, M, M, M, M));
-    impl_tuple_method!(into_11_tuple, (M, M, M, M, M, M, M, M, M, M, M));
-    impl_tuple_method!(into_12_tuple, (M, M, M, M, M, M, M, M, M, M, M, M));
+    pub fn into_1(self) -> M {
+        self.messages.into_iter().next().unwrap()
+    }
+    impl_get_n_method!(into_2, (M, M));
+    impl_get_n_method!(into_3, (M, M, M));
+    impl_get_n_method!(into_4, (M, M, M, M));
+    impl_get_n_method!(into_5, (M, M, M, M, M));
+    impl_get_n_method!(into_6, (M, M, M, M, M, M));
+    impl_get_n_method!(into_7, (M, M, M, M, M, M, M));
+    impl_get_n_method!(into_8, (M, M, M, M, M, M, M, M));
+    impl_get_n_method!(into_9, (M, M, M, M, M, M, M, M, M));
+    impl_get_n_method!(into_10, (M, M, M, M, M, M, M, M, M, M));
+    impl_get_n_method!(into_11, (M, M, M, M, M, M, M, M, M, M, M));
+    impl_get_n_method!(into_12, (M, M, M, M, M, M, M, M, M, M, M, M));
 }
 
 #[cfg(test)]
@@ -54,32 +56,32 @@ mod tests {
     }
 
     #[test]
-    fn test_into_1_tuple() {
+    fn test_into_1() {
         let mm: MatchedMessages<u32> = MatchedMessages {
             case: CaseId(1),
             messages: vec![10],
         };
-        let tuple = mm.into_1_tuple();
-        assert_eq!(tuple, (10,));
+        let tuple = mm.into_1();
+        assert_eq!(tuple, 10);
     }
 
     #[test]
-    fn test_into_3_tuple() {
+    fn test_into_3() {
         let mm: MatchedMessages<u32> = MatchedMessages {
             case: CaseId(2),
             messages: vec![1, 2, 3],
         };
-        let tuple = mm.into_3_tuple();
+        let tuple = mm.into_3();
         assert_eq!(tuple, (1, 2, 3));
     }
 
     #[test]
-    fn test_into_5_tuple() {
+    fn test_into_5() {
         let mm: MatchedMessages<u32> = MatchedMessages {
             case: CaseId(3),
             messages: vec![5, 6, 7, 8, 9],
         };
-        let tuple = mm.into_5_tuple();
+        let tuple = mm.into_5();
         assert_eq!(tuple, (5, 6, 7, 8, 9));
     }
 }

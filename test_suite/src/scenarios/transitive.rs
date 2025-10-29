@@ -15,14 +15,13 @@ macro_rules! declare_transitive {
             let mut output = vec![];
 
             use Msg::*;
-            for msg in messages.to_owned() {
-                fairjax::match_fairest_case!(
-                    Msg,
-                    msg >> mailbox,
-                    case::<$strategy>(A(x) && A(y) && A(z), *x + 100 < *y && *y + 200 < *z, {
+            for msg in messages {
+                fairjax::fairjax!(match msg.clone() >> [mailbox, Msg] {
+                    #[$strategy]
+                    (A(x), A(y), A(z)) if *x + 100 < *y && *y + 200 < *z => {
                         output.push(test_suite::MatchTrace::new(0, vec![A(x), A(y), A(z)]));
-                    })
-                );
+                    }
+                });
             }
             output
         }

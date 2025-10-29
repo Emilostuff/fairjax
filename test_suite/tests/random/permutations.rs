@@ -23,6 +23,6 @@ pub fn test_permutations_mini() {
 #[ignore]
 /// Extensive test to be run on-demand
 pub fn test_permutations_extensive() {
-    let runs = 3000;
+    let runs = 6000;
     run(runs);
 }

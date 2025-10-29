@@ -24,7 +24,7 @@ pub fn test_workers_mini() {
 #[ignore]
 /// Extensive test to be run on-demand
 pub fn test_workers_extensive() {
-    let runs = 150;
-    let size = 8;
+    let runs = 300;
+    let size = 20;
     run(runs, size);
 }

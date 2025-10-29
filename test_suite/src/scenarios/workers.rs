@@ -16,17 +16,16 @@ macro_rules! declare_workers {
             let mut output = vec![];
 
             use Msg::*;
-            for msg in messages.to_owned() {
-                fairjax::match_fairest_case!(
-                    Msg,
-                    msg >> mailbox,
-                    case::<$strategy>(R(w0) && R(w1) && R(w2) && R(w3) && J(job), true, {
+            for msg in messages {
+                fairjax::fairjax!(match msg.clone() >> [mailbox, Msg] {
+                    #[$strategy]
+                    (R(w0), R(w1), R(w2), R(w3), J(job)) => {
                         output.push(test_suite::MatchTrace::new(
                             0,
                             vec![R(w0), R(w1), R(w2), R(w3), J(job)],
                         ));
-                    })
-                );
+                    }
+                });
             }
             output
         }

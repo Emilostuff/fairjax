@@ -15,26 +15,29 @@ macro_rules! declare_sums {
             let mut output = vec![];
 
             use Msg::*;
-            for msg in messages.to_owned() {
-                fairjax::match_fairest_case!(
-                    Msg,
-                    msg >> mailbox,
-                    case::<$strategy>(A(x) && A(y), x + y == 2, {
+            for msg in messages {
+                fairjax::fairjax!(match msg.clone() >> [mailbox, Msg] {
+                    #[$strategy]
+                    (A(x), A(y)) if x + y == 2 => {
                         output.push(test_suite::MatchTrace::new(0, vec![A(x), A(y)]));
-                    }),
-                    case::<$strategy>(A(x) && A(y), x + y == 8, {
+                    }
+                    #[$strategy]
+                    (A(x), A(y)) if x + y == 8 => {
                         output.push(test_suite::MatchTrace::new(0, vec![A(x), A(y)]));
-                    }),
-                    case::<$strategy>(A(x) && A(y), x + y == 11, {
+                    }
+                    #[$strategy]
+                    (A(x), A(y)) if x + y == 11 => {
                         output.push(test_suite::MatchTrace::new(0, vec![A(x), A(y)]));
-                    }),
-                    case::<$strategy>(A(x) && A(y), x + y == 16, {
+                    }
+                    #[$strategy]
+                    (A(x), A(y)) if x + y == 16 => {
                         output.push(test_suite::MatchTrace::new(0, vec![A(x), A(y)]));
-                    }),
-                    case::<$strategy>(A(x) && A(y), x + y == 20, {
+                    }
+                    #[$strategy]
+                    (A(x), A(y)) if x + y == 20 => {
                         output.push(test_suite::MatchTrace::new(0, vec![A(x), A(y)]));
-                    })
-                );
+                    }
+                });
             }
             output
         }

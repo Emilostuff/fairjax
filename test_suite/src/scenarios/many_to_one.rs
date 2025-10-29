@@ -18,23 +18,24 @@ macro_rules! declare_many_to_one {
             let mut output = vec![];
 
             use Msg::*;
-            for msg in messages.to_owned() {
-                fairjax::match_fairest_case!(
-                    Msg,
-                    msg >> mailbox,
-                    case::<$strategy>(E(x) && I(total), x == total, {
+            for msg in messages {
+                fairjax::fairjax!(match msg.clone() >> [mailbox, Msg] {
+                    #[$strategy]
+                    (E(x), I(total)) if x == total => {
                         output.push(test_suite::MatchTrace::new(0, vec![E(x), I(total)]));
-                    }),
-                    case::<$strategy>(E(x) && E(y) && I(total), *x + *y == *total, {
+                    }
+                    #[$strategy]
+                    (E(x), E(y), I(total)) if *x + *y == *total => {
                         output.push(test_suite::MatchTrace::new(1, vec![E(x), E(y), I(total)]));
-                    }),
-                    case::<$strategy>(E(x) && E(y) && E(z) && I(total), *x + *y + *z == *total, {
+                    }
+                    #[$strategy]
+                    (E(x), E(y), E(z), I(total)) if *x + *y + *z == *total => {
                         output.push(test_suite::MatchTrace::new(
                             2,
                             vec![E(x), E(y), E(z), I(total)],
                         ));
-                    })
-                );
+                    }
+                });
             }
             output
         }

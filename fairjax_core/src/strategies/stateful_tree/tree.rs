@@ -47,10 +47,8 @@ impl<const C: usize, P: PartialMatch<C, M> + Default, M> Node<C, P, M> {
 
                 // Find fairest match that satisfies guard
                 for mapping in mappings {
-                    match guard_fn(&messages, &mapping) {
-                        Some(true) => return Some(MatchedIds::from(message_ids, mapping)),
-                        Some(false) => continue,
-                        None => unreachable!(),
+                    if guard_fn(&messages, &mapping) {
+                        return Some(MatchedIds::from(message_ids, mapping));
                     }
                 }
             } else {

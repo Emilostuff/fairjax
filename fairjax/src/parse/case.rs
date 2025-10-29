@@ -1,156 +1,190 @@
-use crate::parse::pattern::Pattern;
+use crate::parse::pattern::{Pattern, PatternDefinition};
 use crate::parse::strategy::Strategy;
-use crate::utils::split_by_char;
-use proc_macro2::{Delimiter, Span, TokenStream, TokenTree};
-use syn::{Error, Result};
+use syn::{Arm, Expr, Result};
 
-#[derive(Debug, Clone)]
-pub struct Case {
-    pub strategy: Strategy,
-    pub pattern: Pattern,
-    pub guard: TokenStream,
-    pub body: TokenStream,
+pub trait Case {
+    fn index(&self) -> usize;
+    fn strategy(&self) -> Strategy;
+    fn pattern(&self) -> &dyn Pattern;
+    fn guard(&self) -> Option<Expr>;
+    fn body(&self) -> Expr;
 }
 
-// Input Parsing
-impl Case {
-    #[cfg(test)]
-    pub fn new(pattern: TokenStream, guard: TokenStream, body: TokenStream) -> Result<Self> {
-        Ok(Case {
-            strategy: Strategy::Auto,
-            pattern: Pattern::parse(pattern)?,
-            guard,
-            body,
-        })
+impl Case for CaseDefinition {
+    fn index(&self) -> usize {
+        self.index
     }
 
-    pub fn parse(input: TokenStream) -> Result<Self> {
-        let (strategy, inner) = Case::unpack_case(input.clone())?;
-        let mut args = split_by_char(inner, ',').into_iter();
+    fn strategy(&self) -> Strategy {
+        self.strategy.clone()
+    }
 
-        let pattern = match args.next() {
-            Some(ts) => Pattern::parse(ts)?,
-            None => {
-                return Err(Error::new_spanned(
-                    input.clone(),
-                    "Pattern missing in 'case' declaration",
-                ));
-            }
+    fn pattern(&self) -> &dyn Pattern {
+        &self.pattern
+    }
+
+    fn guard(&self) -> Option<Expr> {
+        self.guard.clone()
+    }
+
+    fn body(&self) -> Expr {
+        self.body.clone()
+    }
+}
+
+#[derive(Clone)]
+pub struct CaseDefinition {
+    pub index: usize,
+    pub strategy: Strategy,
+    pub pattern: PatternDefinition,
+    pub guard: Option<Expr>,
+    pub body: Expr,
+}
+
+impl CaseDefinition {
+    /// Parse match Arm into case object
+    pub fn parse(input: Arm, index: usize) -> Result<Self> {
+        let Arm {
+            attrs,
+            pat,
+            guard,
+            body,
+            ..
+        } = input;
+
+        // Check if case arm has a strategy attribute
+        let strategy = Strategy::parse(attrs)?;
+
+        // Parse match scrutinee into pattern object
+        let pattern = PatternDefinition::parse(pat)?;
+
+        // Retrieve guard expression if present
+        let guard_option = match guard {
+            Some((_, expr)) => Some(*expr),
+            _ => None,
         };
 
-        let guard = match args.next() {
-            Some(ts) => ts,
-            None => {
-                return Err(Error::new_spanned(
-                    input.clone(),
-                    "Guard missing in 'case' declaration",
-                ));
-            }
-        };
-
-        let body = match args.next() {
-            Some(ts) => ts,
-            None => {
-                return Err(Error::new_spanned(
-                    input.clone(),
-                    "Body missing in 'case' declaration",
-                ));
-            }
-        };
-
-        Ok(Case {
+        // Retrieve body and construct object
+        Ok(CaseDefinition {
+            index,
             strategy,
             pattern,
-            guard,
-            body,
+            guard: guard_option,
+            body: *body,
         })
     }
+}
 
-    fn unpack_case(input: TokenStream) -> Result<(Strategy, TokenStream)> {
-        let mut iter = input.into_iter().peekable();
-        let case_ident = match iter.next() {
-            Some(TokenTree::Ident(ident)) if ident == "case" => ident,
-            Some(tt) => return Err(Error::new_spanned(tt, "Expected 'case' keyword here")),
-            None => {
-                return Err(Error::new(
-                    Span::call_site(),
-                    "Expected a case declaration after ','",
-                ));
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proc_macro_utils::assert_tokens;
+    use quote::ToTokens;
+    use syn::{Arm, parse_quote};
+
+    #[test]
+    fn test_parse_simple_case() {
+        // Define input to test
+        let input: Arm = parse_quote! {
+            (A(x), B(y)) if x == y => println!("Success!")
+        };
+
+        // Define expected result
+        let expected_strategy = Strategy::Auto;
+
+        // Compute actual result
+        let result = CaseDefinition::parse(input, 0).unwrap();
+
+        // Check result
+        assert_eq!(expected_strategy, result.strategy);
+        assert_tokens!(result.guard.unwrap().to_token_stream(), { x == y });
+        assert_tokens!(result.body.to_token_stream(), { println!("Success!") });
+    }
+
+    #[test]
+    fn test_parse_case_without_guard() {
+        // Define input to test
+        let input: Arm = parse_quote! {
+            (A(x), B(y)) => println!("No guard!")
+        };
+
+        // Define expected result
+        let expected_strategy = Strategy::Auto;
+
+        // Compute actual result
+        let result = CaseDefinition::parse(input, 0).unwrap();
+
+        // Check result
+        assert_eq!(expected_strategy, result.strategy);
+        assert!(result.guard.is_none());
+        assert_tokens!(result.body.to_token_stream(), { println!("No guard!") });
+    }
+
+    #[test]
+    fn test_parse_case_with_strategy_attribute() {
+        // Define input to test
+        let input: Arm = parse_quote! {
+            #[BruteForce]
+            (A(x), B(y)) => x + y
+        };
+
+        // Define expected result
+        let expected_strategy = Strategy::BruteForce;
+
+        // Compute actual result
+        let result = CaseDefinition::parse(input, 0).unwrap();
+
+        // Check result
+        assert_eq!(expected_strategy, result.strategy);
+        assert!(result.guard.is_none());
+        assert_tokens!(result.body.to_token_stream(), { x + y });
+    }
+
+    #[test]
+    fn test_parse_case_with_complex_guard() {
+        // Define input to test
+        let input: Arm = parse_quote! {
+            (A(x), B(y)) if x > 0 && y < 10 => x * y
+        };
+
+        // Define expected result
+        let expected_strategy = Strategy::Auto;
+
+        // Compute actual result
+        let result = CaseDefinition::parse(input, 0).unwrap();
+
+        // Check result
+        assert_eq!(expected_strategy, result.strategy);
+        assert_tokens!(result.guard.unwrap().to_token_stream(), { x > 0 && y < 10 });
+        assert_tokens!(result.body.to_token_stream(), { x * y });
+    }
+
+    #[test]
+    fn test_parse_case_with_block_body() {
+        // Define input to test
+        let input: Arm = parse_quote! {
+            (A(x), B(y)) => {
+                let sum = x + y;
+                println!("Sum: {}", sum);
+                sum
             }
         };
 
-        let rest = iter.clone();
+        // Define expected result
+        let expected_strategy = Strategy::Auto;
 
-        let strategy = match iter.peek() {
-            Some(TokenTree::Group(_)) => Strategy::Auto,
-            Some(_) => match (
-                iter.next(),
-                iter.next(),
-                iter.next(),
-                iter.next(),
-                iter.next(),
-            ) {
-                (
-                    Some(TokenTree::Punct(c)),
-                    Some(TokenTree::Punct(c1)),
-                    Some(TokenTree::Punct(gt)),
-                    Some(TokenTree::Ident(ident)),
-                    Some(TokenTree::Punct(lt)),
-                ) if c.as_char() == ':'
-                    && c1.as_char() == ':'
-                    && gt.as_char() == '<'
-                    && lt.as_char() == '>' =>
-                {
-                    match ident.to_string().as_str() {
-                        "Auto" => Strategy::Auto,
-                        "StatefulTree" => Strategy::StatefulTree,
-                        "BruteForce" => Strategy::BruteForce,
-                        _ => {
-                            return Err(syn::Error::new_spanned(
-                                ident,
-                                "Expected one of the following strategies: 'Auto', 'StatefulTree', or 'BruteForce'",
-                            ));
-                        }
-                    }
-                }
-                _ => {
-                    return Err(syn::Error::new_spanned(
-                        rest.collect::<TokenStream>(),
-                        "Expected ()-group or strategy annotation '::<STRATEGY>' after 'case' keyword",
-                    ));
-                }
-            },
-            None => {
-                return Err(syn::Error::new_spanned(
-                    case_ident,
-                    "Expected ()-group or strategy annotation '::<STRATEGY>' after 'case' keyword",
-                ));
-            }
-        };
+        // Compute actual result
+        let result = CaseDefinition::parse(input, 0).unwrap();
 
-        match iter.peek().map(|x| x.clone()) {
-            Some(TokenTree::Group(g)) if g.delimiter() == Delimiter::Parenthesis => {
-                iter.next();
-                match iter.peek() {
-                    Some(_) => {
-                        return Err(syn::Error::new_spanned(
-                            iter.collect::<TokenStream>(),
-                            "Unexpected tokens after 'case( .. )'",
-                        ));
-                    }
-                    None => return Ok((strategy, g.stream())),
-                }
+        // Check result
+        assert_eq!(expected_strategy, result.strategy);
+        assert!(result.guard.is_none());
+        assert_tokens!(result.body.to_token_stream(), {
+            {
+                let sum = x + y;
+                println!("Sum: {}", sum);
+                sum
             }
-            Some(_) => {
-                return Err(syn::Error::new_spanned(
-                    iter.collect::<TokenStream>(),
-                    "Expected ()-group after 'case' keyword",
-                ));
-            }
-            None => Err(syn::Error::new_spanned(
-                case_ident,
-                "Expected ()-group after 'case' keyword",
-            )),
-        }
+        });
     }
 }

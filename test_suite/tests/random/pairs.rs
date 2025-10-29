@@ -24,7 +24,7 @@ pub fn test_pairs_mini() {
 #[ignore]
 /// Extensive test to be run on-demand
 pub fn test_pairs_extensive() {
-    let runs = 2000;
+    let runs = 4000;
     let size = 50;
     run(runs, size);
 }

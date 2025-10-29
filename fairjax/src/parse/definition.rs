@@ -1,72 +1,46 @@
-use crate::utils::{parse_identifier, split_by_char};
-use crate::{parse::case::Case, utils::split_by_double_char};
-use proc_macro2::{Ident, Span, TokenStream};
-use syn::{Error, Result};
+use crate::parse::case::{Case, CaseDefinition};
+use crate::parse::context::Context;
+use proc_macro2::TokenStream;
+use syn::Result;
+
+pub trait Definition {
+    fn context(&self) -> Context;
+    fn cases(&self) -> Vec<&dyn Case>;
+}
+
+impl Definition for JoinDefinition {
+    fn context(&self) -> Context {
+        self.context.clone()
+    }
+
+    fn cases(&self) -> Vec<&dyn Case> {
+        self.cases.iter().map(|c| c as &dyn Case).collect()
+    }
+}
 
 pub struct JoinDefinition {
-    pub message_type: Ident,
-    pub mailbox: Ident,
-    pub message: Ident,
-    pub cases: Vec<Case>,
+    pub context: Context,
+    pub cases: Vec<CaseDefinition>,
 }
 
 // Input Parsing
 impl JoinDefinition {
     pub fn parse(input: TokenStream) -> Result<Self> {
-        let mut args = split_by_char(input, ',').into_iter();
+        // Parse tokens to match expression syntax
+        let match_expr: syn::ExprMatch = syn::parse2(input)?;
 
-        // Parse message type
-        let message_type = match args.next() {
-            Some(ts) => parse_identifier(&ts, false)?,
-            None => {
-                return Err(Error::new(
-                    Span::call_site(),
-                    "Missing message type parameter",
-                ));
-            }
-        };
+        // Parse context
+        let context = Context::parse(*match_expr.expr)?;
 
-        // Parse message and mailbox identifier
-        let (message, mailbox) = match args.next() {
-            Some(tt) => {
-                let mut blocks = split_by_double_char(tt.clone(), '>').into_iter();
-
-                match (blocks.next(), blocks.next(), blocks.next()) {
-                    (Some(message), Some(mailbox), None) => {
-                        let message = parse_identifier(&message, false)?;
-                        let mailbox = parse_identifier(&mailbox, false)?;
-                        (message, mailbox)
-                    }
-                    _ => {
-                        return Err(Error::new_spanned(
-                            tt,
-                            "Invalid syntax for message/mailbox parameter (must contain exactly one '>>' operator)",
-                        ));
-                    }
-                }
-            }
-            None => {
-                return Err(Error::new(
-                    Span::call_site(),
-                    "Missing message/mailbox parameter",
-                ));
-            }
-        };
-
-        // Parse remaining args to cases:
-        let cases = args
-            .map(|arg| Case::parse(arg))
-            .collect::<Result<Vec<Case>>>()?;
+        // Parse match arms to cases:
+        let cases = match_expr
+            .arms
+            .into_iter()
+            .enumerate()
+            .map(|(i, arm)| CaseDefinition::parse(arm, i))
+            .collect::<Result<Vec<CaseDefinition>>>()?;
 
         // Return join defenition
-        Ok(JoinDefinition {
-            message_type,
-            mailbox,
-            message,
-            cases,
-        })
+        Ok(JoinDefinition { context, cases })
     }
 }
-
-#[cfg(test)]
-mod parse_tests {}

@@ -4,18 +4,12 @@ use itertools::Itertools;
 pub struct BruteForceMatcher<const C: usize, M> {
     message_ids: Vec<MessageId>,
     guard_fn: GuardFn<C, M>,
+    permutations: Vec<Mapping<C>>,
 }
 
 impl<const C: usize, M> BruteForceMatcher<C, M> {
     pub fn new(guard_fn: GuardFn<C, M>) -> Self {
-        Self {
-            message_ids: Vec::new(),
-            guard_fn,
-        }
-    }
-
-    pub fn all_index_permutations() -> Vec<Mapping<C>> {
-        (0..C)
+        let permutations = (0..C)
             .permutations(C)
             .map(|indices| {
                 let mut arr = [0; C];
@@ -24,12 +18,22 @@ impl<const C: usize, M> BruteForceMatcher<C, M> {
                 }
                 Mapping::new(arr)
             })
-            .collect()
+            .collect();
+
+        Self {
+            message_ids: Vec::new(),
+            guard_fn,
+            permutations,
+        }
+    }
+
+    pub fn all_mappings(&self) -> &[Mapping<C>] {
+        &self.permutations
     }
 
     pub fn try_all_slices_in_sorted_lex_order(&self, store: &Store<M>) -> Option<MatchedIds> {
         // Get all possible permutations as mappings
-        let mappings = Self::all_index_permutations();
+        let mappings = self.all_mappings();
 
         // Loop through all message sets of size C in sorted lexicographical order
         for message_set in self.message_ids.iter().combinations(C) {
@@ -39,8 +43,8 @@ impl<const C: usize, M> BruteForceMatcher<C, M> {
             let messages: [&M; C] = message_ids.map(|id| &store[&id]);
 
             // Try all mappings in order
-            for mapping in &mappings {
-                if let Some(true) = (self.guard_fn)(&messages, &mapping) {
+            for mapping in mappings {
+                if (self.guard_fn)(&messages, &mapping) {
                     return Some(MatchedIds::from(message_ids, mapping.clone()));
                 }
             }
@@ -75,7 +79,7 @@ mod tests {
             static TRIED_SLICES: RefCell<Vec<[usize; 3]>> = RefCell::new(Vec::new());
         }
 
-        pub fn guard_fn(messages: &[&Msg; 3], mapping: &Mapping<3>) -> Option<bool> {
+        pub fn guard_fn(messages: &[&Msg; 3], mapping: &Mapping<3>) -> bool {
             TRIED_SLICES.with_borrow_mut(|ts| {
                 ts.push([
                     messages[mapping.get(0)].0,
@@ -83,7 +87,7 @@ mod tests {
                     messages[mapping.get(2)].0,
                 ])
             });
-            Some(false)
+            false
         }
 
         let mut store = Store::<Msg>::default();
@@ -117,11 +121,11 @@ mod tests {
             static TRIED_SLICES: RefCell<Vec<[usize; 2]>> = RefCell::new(Vec::new());
         }
 
-        pub fn guard_fn(messages: &[&Msg; 2], mapping: &Mapping<2>) -> Option<bool> {
+        pub fn guard_fn(messages: &[&Msg; 2], mapping: &Mapping<2>) -> bool {
             TRIED_SLICES.with_borrow_mut(|ts| {
                 ts.push([messages[mapping.get(0)].0, messages[mapping.get(1)].0])
             });
-            Some(false)
+            false
         }
 
         let mut store = Store::<Msg>::default();

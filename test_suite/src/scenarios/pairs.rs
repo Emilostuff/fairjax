@@ -16,14 +16,13 @@ macro_rules! declare_pairs {
             let mut output = vec![];
 
             use Msg::*;
-            for msg in messages.to_owned() {
-                fairjax::match_fairest_case!(
-                    Msg,
-                    msg >> mailbox,
-                    case::<$strategy>(A(x) && B(y), x == y, {
+            for msg in messages {
+                fairjax::fairjax!(match msg.clone() >> [mailbox, Msg] {
+                    #[$strategy]
+                    (A(x), B(y)) if x == y => {
                         output.push(test_suite::MatchTrace::new(0, vec![A(x), B(y)]));
-                    })
-                );
+                    }
+                });
             }
             output
         }

@@ -24,7 +24,7 @@ pub fn test_transitive_mini() {
 #[ignore]
 /// Extensive test to be run on-demand
 pub fn test_transitive_extensive() {
-    let runs = 5000;
-    let size = 50;
+    let runs = 10000;
+    let size = 100;
     run(runs, size);
 }

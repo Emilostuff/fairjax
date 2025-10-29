@@ -1,13 +1,12 @@
-use crate::{Mapping, MessageId};
+use crate::Mapping;
 
 pub struct Element {
-    pub id: MessageId,
     pub indices: Vec<usize>,
 }
 
 impl Element {
-    pub fn new(id: MessageId, indices: Vec<usize>) -> Self {
-        Self { id, indices }
+    pub fn new(indices: Vec<usize>) -> Self {
+        Self { indices }
     }
 }
 
@@ -56,7 +55,7 @@ mod tests {
     fn test_simple_permutation() {
         // Element 1 can be in position 1
         // Element 2 can be in position 0
-        let elements = [Element::new(id!(1), vec![1]), Element::new(id!(2), vec![0])];
+        let elements = [Element::new(vec![1]), Element::new(vec![0])];
 
         let permutations = Permutations::get_permutations(elements);
 
@@ -68,10 +67,7 @@ mod tests {
     fn test_two_options_permutation() {
         // Element 1 can be in position 0 or 1
         // Element 2 can be in position 0 or 1
-        let elements = [
-            Element::new(id!(1), vec![0, 1]),
-            Element::new(id!(2), vec![0, 1]),
-        ];
+        let elements = [Element::new(vec![0, 1]), Element::new(vec![0, 1])];
 
         let permutations = Permutations::get_permutations(elements);
 
@@ -86,9 +82,9 @@ mod tests {
         // Element 2 can only be in position 0 or 1
         // Element 3 can only be in position 2
         let elements = [
-            Element::new(id!(1), vec![0, 1]),
-            Element::new(id!(2), vec![0, 1]),
-            Element::new(id!(3), vec![2]),
+            Element::new(vec![0, 1]),
+            Element::new(vec![0, 1]),
+            Element::new(vec![2]),
         ];
 
         let permutations = Permutations::get_permutations(elements);
@@ -104,9 +100,9 @@ mod tests {
         // Element 2 can only be in position 1
         // Element 3 can only be in position 2
         let elements = [
-            Element::new(id!(1), vec![0]),
-            Element::new(id!(2), vec![1]),
-            Element::new(id!(3), vec![2]),
+            Element::new(vec![0]),
+            Element::new(vec![1]),
+            Element::new(vec![2]),
         ];
 
         let permutations = Permutations::get_permutations(elements);

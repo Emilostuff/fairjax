@@ -21,24 +21,16 @@ macro_rules! declare_equal_cases {
             let mut output = vec![];
 
             use Msg::*;
-            for msg in messages.to_owned()  {
-                fairjax::match_fairest_case!(
-                    Msg,
-                    msg >> mailbox,
+            for msg in messages {
+                fairjax::fairjax!(match msg.clone() >> [mailbox, Msg] {
                     $(
-                        case::<$strategy>(
-                            A(a) && B(b1) && B(b2) && C(c),
-                            a < b1 && b1 < b2 && b2 < c,
-                            {
-                                let idx = $idx;
-                                output.push(test_suite::MatchTrace::new(
-                                    idx,
-                                    vec![A(a), B(b1), B(b2), C(c)],
-                                ));
-                            },
-                        )
-                    ),*
-                );
+                        #[$strategy]
+                        (A(a), B(b1), B(b2), C(c)) if a < b1 && b1 < b2 && b2 < c => {
+                            let idx = $idx;
+                            output.push(test_suite::MatchTrace::new(idx, vec![A(a), B(b1), B(b2), C(c)]));
+                        },
+                    )*
+                });
             }
             output
         }

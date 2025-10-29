@@ -24,7 +24,7 @@ pub fn test_equal_cases_mini() {
 #[ignore]
 /// Extensive test to be run on-demand
 pub fn test_equal_cases_extensive() {
-    let runs = 40;
-    let size = 15;
+    let runs = 400;
+    let size = 20;
     run(runs, size);
 }

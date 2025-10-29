@@ -17,21 +17,18 @@ macro_rules! declare_permutations {
             let mut output = vec![];
 
             use Msg::*;
-            for msg in messages.to_owned() {
-                fairjax::match_fairest_case!(
-                    Msg,
-                    msg >> mailbox,
-                    case::<$strategy>(
-                        A(a) && A(b) && A(c) && A(d) && B(e) && B(f) && B(g) && B(h),
-                        a < b && b < c && c < d && e < f && f < g && g < h,
-                        {
-                            output.push(test_suite::MatchTrace::new(
-                                0,
-                                vec![A(a), A(b), A(c), A(d), B(e), B(f), B(g), B(h)],
-                            ));
-                        }
-                    )
-                );
+            for msg in messages {
+                fairjax::fairjax!(match msg.clone() >> [mailbox, Msg] {
+                    #[$strategy]
+                    (A(a), A(b), A(c), A(d), B(e), B(f), B(g), B(h))
+                        if a < b && b < c && c < d && e < f && f < g && g < h =>
+                    {
+                        output.push(test_suite::MatchTrace::new(
+                            0,
+                            vec![A(a), A(b), A(c), A(d), B(e), B(f), B(g), B(h)],
+                        ));
+                    }
+                });
             }
             output
         }

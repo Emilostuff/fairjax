@@ -19,21 +19,16 @@ macro_rules! declare_groups {
             let mut output = vec![];
 
             use Msg::*;
-            for msg in messages.to_owned() {
-                fairjax::match_fairest_case!(
-                    Msg,
-                    msg >> mailbox,
-                    case::<$strategy>(
-                        A(a) && B(b) && C(c) && D(d) && E(e),
-                        a == b && b == c && c == d && d == e,
-                        {
-                            output.push(test_suite::MatchTrace::new(
-                                0,
-                                vec![A(a), B(b), C(c), D(d), E(e)],
-                            ));
-                        }
-                    )
-                );
+            for msg in messages {
+                fairjax::fairjax!(match msg.clone() >> [mailbox, Msg] {
+                    #[$strategy]
+                    (A(a), B(b), C(c), D(d), E(e)) if a == b && b == c && c == d && d == e => {
+                        output.push(test_suite::MatchTrace::new(
+                            0,
+                            vec![A(a), B(b), C(c), D(d), E(e)],
+                        ));
+                    }
+                });
             }
             output
         }
