@@ -42,6 +42,7 @@ impl<'a> PatternProfile<'a> {
 mod tests {
     use super::*;
     use crate::parse::sub_pattern::{SubPattern, SubPatternDefinition};
+    use proc_macro2::Span;
     use syn::Ident;
 
     fn ident(input: &str) -> Ident {
@@ -85,6 +86,10 @@ mod tests {
 
         fn len(&self) -> usize {
             unimplemented!()
+        }
+
+        fn span(&self) -> Span {
+            Span::call_site()
         }
     }
 

@@ -1,29 +1,42 @@
 use crate::parse::sub_pattern::{SubPattern, SubPatternDefinition};
-use syn::{Pat, Result};
+use proc_macro2::Span;
+use syn::{Pat, Result, spanned::Spanned};
 
 pub trait Pattern {
     fn sub_patterns(&self) -> Vec<&dyn SubPattern>;
     fn len(&self) -> usize;
+    fn span(&self) -> Span;
 }
 
 impl Pattern for PatternDefinition {
     fn sub_patterns(&self) -> Vec<&dyn SubPattern> {
-        self.0.iter().map(|sp| sp as &dyn SubPattern).collect()
+        self.sub_patterns
+            .iter()
+            .map(|sp| sp as &dyn SubPattern)
+            .collect()
     }
 
     fn len(&self) -> usize {
-        self.0.len()
+        self.sub_patterns.len()
+    }
+
+    fn span(&self) -> Span {
+        self.span
     }
 }
 
 #[derive(Clone)]
 // The pattern of a match arm expression
-pub struct PatternDefinition(pub Vec<SubPatternDefinition>);
+pub struct PatternDefinition {
+    pub sub_patterns: Vec<SubPatternDefinition>,
+    pub span: Span,
+}
 
 impl PatternDefinition {
     /// Parse a pattern from a Pat obejct into a Pattern
     /// Tries to parse the pattern as either a Tuple of SubPatterns or a single SubPattern.
     pub fn parse(input: Pat) -> Result<Self> {
+        let span = input.span();
         match input.clone() {
             Pat::Tuple(tuple) => {
                 let sub_patterns = tuple
@@ -32,7 +45,7 @@ impl PatternDefinition {
                     .map(|p| SubPatternDefinition::parse(p))
                     .collect::<Result<Vec<SubPatternDefinition>>>()?;
                 if sub_patterns.len() > 0 {
-                    Ok(PatternDefinition(sub_patterns))
+                    Ok(PatternDefinition { sub_patterns, span })
                 } else {
                     Err(syn::Error::new_spanned(
                         input,
@@ -40,9 +53,10 @@ impl PatternDefinition {
                     ))
                 }
             }
-            singleton => Ok(PatternDefinition(vec![SubPatternDefinition::parse(
-                singleton,
-            )?])),
+            singleton => Ok(PatternDefinition {
+                sub_patterns: vec![SubPatternDefinition::parse(singleton)?],
+                span,
+            }),
         }
     }
 }

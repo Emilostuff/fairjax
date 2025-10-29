@@ -1,7 +1,7 @@
 use crate::compile::pattern::sub::SubPatternCodeGen;
 use crate::parse::pattern::Pattern;
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::quote_spanned;
 
 pub trait PatternCodeGen {
     fn generate<S: SubPatternCodeGen>(pattern: &dyn Pattern) -> TokenStream;
@@ -21,11 +21,11 @@ impl PatternCodeGen for PatternCompiler {
         // If there is only on SubPattern, omit parenthesis around it
         if sub_patterns.len() == 1 {
             let sub_pattern = sub_patterns[0].clone();
-            return quote!( #sub_pattern );
+            return quote_spanned!( pattern.span() => #sub_pattern );
         }
 
         // Otherwise return a list of comma separated SubPatterns, enclosed in parenthesis
-        quote!( (#(#sub_patterns),*) )
+        quote_spanned!( pattern.span() => (#(#sub_patterns),*) )
     }
 }
 
@@ -35,7 +35,7 @@ mod tests {
     use crate::compile::pattern::sub::SubPatternCodeGen;
     use crate::parse::sub_pattern::{SubPattern, SubPatternDefinition};
     use proc_macro_utils::assert_tokens;
-    use proc_macro2::TokenStream;
+    use proc_macro2::{Span, TokenStream};
     use quote::quote;
     use syn::Ident;
 
@@ -74,6 +74,10 @@ mod tests {
 
         fn len(&self) -> usize {
             unimplemented!()
+        }
+
+        fn span(&self) -> Span {
+            Span::call_site()
         }
     }
 

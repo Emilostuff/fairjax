@@ -1,6 +1,7 @@
 use crate::parse::pattern::{Pattern, PatternDefinition};
 use crate::parse::strategy::Strategy;
-use syn::{Arm, Expr, Result};
+use proc_macro2::Span;
+use syn::{Arm, Expr, Result, spanned::Spanned};
 
 pub trait Case {
     fn index(&self) -> usize;
@@ -8,6 +9,7 @@ pub trait Case {
     fn pattern(&self) -> &dyn Pattern;
     fn guard(&self) -> Option<Expr>;
     fn body(&self) -> Expr;
+    fn span(&self) -> Span;
 }
 
 impl Case for CaseDefinition {
@@ -30,6 +32,10 @@ impl Case for CaseDefinition {
     fn body(&self) -> Expr {
         self.body.clone()
     }
+
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 #[derive(Clone)]
@@ -39,11 +45,13 @@ pub struct CaseDefinition {
     pub pattern: PatternDefinition,
     pub guard: Option<Expr>,
     pub body: Expr,
+    pub span: Span,
 }
 
 impl CaseDefinition {
     /// Parse match Arm into case object
     pub fn parse(input: Arm, index: usize) -> Result<Self> {
+        let span = input.span();
         let Arm {
             attrs,
             pat,
@@ -71,6 +79,7 @@ impl CaseDefinition {
             pattern,
             guard: guard_option,
             body: *body,
+            span,
         })
     }
 }

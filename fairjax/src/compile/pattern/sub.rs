@@ -1,7 +1,7 @@
 use crate::parse::sub_pattern::{SubPattern, SubPatternDefinition};
 use proc_macro2::TokenStream;
-use quote::quote;
-use syn::{Pat, punctuated::Punctuated};
+use quote::quote_spanned;
+use syn::{Pat, punctuated::Punctuated, spanned::Spanned};
 
 pub trait SubPatternCodeGen {
     fn generate(sub_pattern: &dyn SubPattern, anonymous: bool) -> TokenStream;
@@ -12,8 +12,8 @@ pub struct SubPatternCompiler;
 impl SubPatternCodeGen for SubPatternCompiler {
     fn generate(sub_pattern: &dyn SubPattern, anonymous: bool) -> TokenStream {
         match sub_pattern.get() {
-            SubPatternDefinition::Ident(ident) => quote!(#ident),
-            SubPatternDefinition::Path(p) => quote!(#p),
+            SubPatternDefinition::Ident(ident) => quote_spanned!(ident.span() => #ident),
+            SubPatternDefinition::Path(p) => quote_spanned!(p.span() => #p),
             SubPatternDefinition::TupleStruct(mut ts) => {
                 if anonymous {
                     ts.elems = Punctuated::from_iter(ts.elems.iter().map(|_| {
@@ -23,7 +23,7 @@ impl SubPatternCodeGen for SubPatternCompiler {
                         })
                     }));
                 }
-                quote!(#ts)
+                quote_spanned!(ts.span() => #ts)
             }
             SubPatternDefinition::Struct(mut s) => {
                 if anonymous {
@@ -36,7 +36,7 @@ impl SubPatternCodeGen for SubPatternCompiler {
                         field
                     }));
                 }
-                quote!(#s)
+                quote_spanned!(s.span() => #s)
             }
         }
     }

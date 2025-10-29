@@ -27,8 +27,9 @@ impl TopLevelCodeGen for TopLevel {
             ..
         } = def.context();
 
-        let match_result = Ident::new("result", Span::call_site());
-        let action_section = A::generate::<Action>(def.cases(), &match_result);
+        let result_name = "result";
+        let result_ident = Ident::new(result_name, Span::call_site());
+        let action_section = A::generate::<Action>(def.cases(), result_name);
         let setup_section = D::generate::<Setup>(def);
 
         quote! {
@@ -47,7 +48,7 @@ impl TopLevelCodeGen for TopLevel {
             }
 
             // Run action if match was found
-            if let Some(#match_result) = #mailbox.process(#incoming_message) {
+            if let Some(#result_ident) = #mailbox.process(#incoming_message) {
                 #action_section
             }
         }

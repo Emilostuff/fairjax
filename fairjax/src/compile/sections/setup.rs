@@ -1,7 +1,6 @@
 use crate::{compile::matchers::SetupCodeGen, parse::definition::Definition};
-use proc_macro2::TokenStream;
-use quote::format_ident;
-use quote::quote;
+use proc_macro2::{Span, TokenStream};
+use quote::quote_spanned;
 
 pub trait SetupSectionCodeGen {
     fn generate<D: SetupCodeGen>(def: &dyn Definition) -> TokenStream;
@@ -16,7 +15,7 @@ impl SetupSectionCodeGen for SetupSection {
         let identifiers: Vec<_> = def
             .cases()
             .iter()
-            .map(|c| format_ident!("case{}", c.index()))
+            .map(|c| syn::Ident::new(&format!("case{}", c.index()), Span::call_site()))
             .collect();
 
         let setups = identifiers
@@ -25,7 +24,7 @@ impl SetupSectionCodeGen for SetupSection {
             .map(|(ident, case)| S::generate(*case, def.context(), ident))
             .collect::<Vec<TokenStream>>();
 
-        quote! {
+        quote_spanned! { Span::call_site() =>
             #(
                 #setups
                 #mailbox.add_case(Box::new(#identifiers));
@@ -39,7 +38,7 @@ mod tests {
     use super::*;
     use crate::parse::context::Context;
     use proc_macro_utils::assert_tokens;
-    use proc_macro2::TokenStream;
+    use proc_macro2::{Span, TokenStream};
     use quote::{ToTokens, format_ident};
 
     // Mock Case
@@ -61,6 +60,9 @@ mod tests {
         }
         fn body(&self) -> syn::Expr {
             unimplemented!()
+        }
+        fn span(&self) -> Span {
+            Span::call_site()
         }
     }
 

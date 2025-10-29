@@ -3,22 +3,24 @@ use crate::{
     parse::case::Case,
 };
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote_spanned;
 use syn::Ident;
 
 pub trait ActionCodeGen {
-    fn generate<P: PatternCodeGen>(case: &dyn Case, result_ident: &Ident) -> TokenStream;
+    fn generate<P: PatternCodeGen>(case: &dyn Case, result_name: &'static str) -> TokenStream;
 }
 
 pub struct Action;
 
 impl ActionCodeGen for Action {
-    fn generate<P: PatternCodeGen>(case: &dyn Case, result_ident: &Ident) -> TokenStream {
-        let tuple_ident = format_ident!("into_{}", case.pattern().len());
+    fn generate<P: PatternCodeGen>(case: &dyn Case, result_name: &'static str) -> TokenStream {
+        let tuple_ident = Ident::new(&format!("into_{}", case.pattern().len()), case.span());
+        let result_ident = Ident::new(result_name, case.span());
+
         let pattern_match_code = P::generate::<SubPatternCompiler>(case.pattern());
         let body = case.body();
 
-        quote! {
+        quote_spanned! { case.span() =>
             match #result_ident.#tuple_ident() {
                 #pattern_match_code => #body,
                 _ => panic!("not good"),
@@ -36,8 +38,8 @@ mod tests {
     use crate::parse::strategy::Strategy;
     use crate::parse::sub_pattern::SubPattern;
     use proc_macro_utils::assert_tokens;
-    use proc_macro2::TokenStream;
-    use quote::ToTokens;
+    use proc_macro2::{Span, TokenStream};
+    use quote::{ToTokens, format_ident};
     use syn::Expr;
 
     // Mock Pattern with n sub-patterns
@@ -50,6 +52,10 @@ mod tests {
 
         fn len(&self) -> usize {
             self.0
+        }
+
+        fn span(&self) -> Span {
+            Span::call_site()
         }
     }
 
@@ -74,6 +80,10 @@ mod tests {
         fn body(&self) -> Expr {
             syn::parse_quote!(BODY)
         }
+
+        fn span(&self) -> Span {
+            Span::call_site()
+        }
     }
 
     // Mock PatternCodeGen trait
@@ -92,7 +102,7 @@ mod tests {
             pattern: MockPattern(1),
         };
 
-        let generated = Action::generate::<MockPatternCodeGen>(&case, &format_ident!("result"));
+        let generated = Action::generate::<MockPatternCodeGen>(&case, "result");
 
         assert_tokens!(generated, {
             match result.into_1() {
@@ -108,7 +118,7 @@ mod tests {
             pattern: MockPattern(2),
         };
 
-        let generated = Action::generate::<MockPatternCodeGen>(&case, &format_ident!("result"));
+        let generated = Action::generate::<MockPatternCodeGen>(&case, "result");
 
         assert_tokens!(generated, {
             match result.into_2() {
@@ -124,7 +134,7 @@ mod tests {
             pattern: MockPattern(5),
         };
 
-        let generated = Action::generate::<MockPatternCodeGen>(&case, &format_ident!("result"));
+        let generated = Action::generate::<MockPatternCodeGen>(&case, "result");
 
         assert_tokens!(generated, {
             match result.into_5() {

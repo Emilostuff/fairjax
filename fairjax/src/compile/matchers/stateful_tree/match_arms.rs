@@ -1,16 +1,16 @@
 use crate::compile::matchers::stateful_tree::profile::PatternProfile;
 use crate::compile::pattern::sub::SubPatternCodeGen;
-use proc_macro2::TokenStream;
-use quote::quote;
+use proc_macro2::{Span, TokenStream};
+use quote::quote_spanned;
 
 pub trait MatchArmCodeGen {
-    fn generate<S: SubPatternCodeGen>(profile: &PatternProfile) -> TokenStream;
+    fn generate<S: SubPatternCodeGen>(span: Span, profile: &PatternProfile) -> TokenStream;
 }
 
 pub struct MatchArmCompiler;
 
 impl MatchArmCodeGen for MatchArmCompiler {
-    fn generate<S: SubPatternCodeGen>(profile: &PatternProfile) -> TokenStream {
+    fn generate<S: SubPatternCodeGen>(span: Span, profile: &PatternProfile) -> TokenStream {
         let match_arms = profile.0.iter().scan(0, |position, stats| {
             // Create anonymized sub pattern
             let anonymized_sub_pattern = S::generate(stats.sub_pattern, true);
@@ -24,11 +24,11 @@ impl MatchArmCodeGen for MatchArmCompiler {
             *position = end;
 
             // Assemble code snippets into match arm
-            Some(quote!(#anonymized_sub_pattern => (#start, #end)))
+            Some(quote_spanned!(span => #anonymized_sub_pattern => (#start, #end)))
         });
 
         // Combine, and comma separate match arms
-        quote!(#(#match_arms),*,)
+        quote_spanned!(span => #(#match_arms),*,)
     }
 }
 
@@ -77,7 +77,8 @@ mod tests {
             positions: vec![0],
         }]);
 
-        let result = MatchArmCompiler::generate::<MockSubPatternCodeGen>(&profile);
+        let result =
+            MatchArmCompiler::generate::<MockSubPatternCodeGen>(Span::call_site(), &profile);
 
         assert_tokens!( result, {
             A => (0usize, 1usize),
@@ -129,7 +130,8 @@ mod tests {
         ];
         let profile = PatternProfile(stats);
 
-        let result = MatchArmCompiler::generate::<MockSubPatternCodeGen>(&profile);
+        let result =
+            MatchArmCompiler::generate::<MockSubPatternCodeGen>(Span::call_site(), &profile);
 
         // The expected match arms, in order, with correct ranges
         assert_tokens!( result, {

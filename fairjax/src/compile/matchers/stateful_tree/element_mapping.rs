@@ -1,17 +1,17 @@
 use crate::compile::matchers::stateful_tree::profile::PatternProfile;
-use proc_macro2::TokenStream;
-use quote::quote;
+use proc_macro2::{Span, TokenStream};
+use quote::quote_spanned;
 
 /// Generates element mappings that define subpattern positions for permutation algorithms
 pub trait ElementMappingCodeGen {
     /// Generate code creating Element instances for each unique subpattern in the pattern
-    fn generate(profile: &PatternProfile) -> TokenStream;
+    fn generate(span: Span, profile: &PatternProfile) -> TokenStream;
 }
 
 pub struct ElementMappingCompiler;
 
 impl ElementMappingCodeGen for ElementMappingCompiler {
-    fn generate(profile: &PatternProfile) -> TokenStream {
+    fn generate(span: Span, profile: &PatternProfile) -> TokenStream {
         // Generate Element instances containing position lists for each subpattern
         let element_mappings = profile.0.iter().map(|sp_stats| {
             let positions = sp_stats.positions.clone();
@@ -19,17 +19,17 @@ impl ElementMappingCodeGen for ElementMappingCompiler {
             // Generate a mapping for each occurence of the sub pattern
             (0..sp_stats.occurrences)
                 .map(|_| {
-                    quote!(
+                    quote_spanned! { span =>
                         fairjax_core::strategies::stateful_tree::permute::Element::new(
                             vec![#(#positions),*]
                         ),
-                    )
+                    }
                 })
                 .collect::<TokenStream>()
         });
 
         // Assemple element mappings
-        quote!( [ #(#element_mappings)* ] )
+        quote_spanned!( span => [ #(#element_mappings)* ] )
     }
 }
 
@@ -68,7 +68,7 @@ mod tests {
         let profile = PatternProfile(vec![sub_pattern_stats(vec![0], 1)]);
 
         // Generate result code
-        let result = ElementMappingCompiler::generate(&profile);
+        let result = ElementMappingCompiler::generate(Span::call_site(), &profile);
 
         // Verfiy correctness
         #[rustfmt::skip]
@@ -83,7 +83,7 @@ mod tests {
         let profile = PatternProfile(vec![sub_pattern_stats(vec![0, 1, 2, 3], 4)]);
 
         // Generate result code
-        let result = ElementMappingCompiler::generate(&profile);
+        let result = ElementMappingCompiler::generate(Span::call_site(), &profile);
 
         // Verfiy correctness
         #[rustfmt::skip]
@@ -106,7 +106,7 @@ mod tests {
         ]);
 
         // Generate result code
-        let result = ElementMappingCompiler::generate(&profile);
+        let result = ElementMappingCompiler::generate(Span::call_site(), &profile);
 
         // Verfiy correctness
         #[rustfmt::skip]
@@ -130,7 +130,7 @@ mod tests {
         ]);
 
         // Generate result code
-        let result = ElementMappingCompiler::generate(&profile);
+        let result = ElementMappingCompiler::generate(Span::call_site(), &profile);
 
         // Verfiy correctness
         #[rustfmt::skip]

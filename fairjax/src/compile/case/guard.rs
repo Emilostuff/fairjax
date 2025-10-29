@@ -2,28 +2,36 @@ use crate::compile::pattern::full::PatternCodeGen;
 use crate::compile::pattern::sub::SubPatternCompiler;
 use crate::parse::{case::Case, context::Context, pattern::Pattern};
 use proc_macro2::{Span, TokenStream};
-use quote::{ToTokens, quote};
-use syn::Ident;
+use quote::{ToTokens, quote_spanned};
+use syn::{Ident, spanned::Spanned};
 
 pub trait GuardCodeGen {
-    fn generate<P: PatternCodeGen>(
+    fn generate<'a, P: PatternCodeGen>(
         case: &dyn Case,
         context: &Context,
-        guard_ident: &Ident,
+        fn_name: &'a str,
     ) -> TokenStream;
 }
 
 pub struct GuardCompiler;
 
 impl GuardCodeGen for GuardCompiler {
-    fn generate<P: PatternCodeGen>(
+    fn generate<'a, P: PatternCodeGen>(
         case: &dyn Case,
         context: &Context,
-        guard_ident: &Ident,
+        fn_name: &'a str,
     ) -> TokenStream {
+        let span = match case.guard() {
+            Some(guard) => guard.span(),
+            None => case.span(),
+        };
+
+        // Construct guard function identifier
+        let fn_ident = Ident::new(fn_name, span);
+
         // Define standardized function parameter names
-        let messages_param_ident = Ident::new("messages", Span::call_site());
-        let mapping_param_ident = Ident::new("mapping", Span::call_site());
+        let messages_param_ident = Ident::new("messages", span);
+        let mapping_param_ident = Ident::new("mapping", span);
 
         // Retrieve values for code block
         let message_type = &context.message_type;
@@ -31,15 +39,17 @@ impl GuardCodeGen for GuardCompiler {
 
         // Generate code snippets
         let unpacking = GuardCompiler::unpacking_code(
+            span,
             case.pattern(),
             &messages_param_ident,
             &mapping_param_ident,
         );
-        let guard_expr = GuardCompiler::guard_expression_code(case.guard());
+        let guard_expr = GuardCompiler::guard_expression_code(span, case.guard());
         let pattern = P::generate::<SubPatternCompiler>(case.pattern());
 
-        quote! {
-            fn #guard_ident(
+        quote_spanned! {
+            span =>
+            fn #fn_ident(
                 #messages_param_ident: &[&#message_type; #pattern_len],
                 #mapping_param_ident: &fairjax_core::Mapping<#pattern_len>,
             ) -> bool {
@@ -55,26 +65,27 @@ impl GuardCodeGen for GuardCompiler {
 impl GuardCompiler {
     /// Generate unpacking code that maps messages from their stored position given a mapping
     fn unpacking_code(
+        span: Span,
         pattern: &dyn Pattern,
         message_param_ident: &Ident,
         mapping_param_ident: &Ident,
     ) -> TokenStream {
         // If there is only one match scrutinee, omit parenthesis
         if pattern.len() == 1 {
-            return quote!( #message_param_ident[#mapping_param_ident.get(0usize)] );
+            return quote_spanned!( span => #message_param_ident[#mapping_param_ident.get(0usize)] );
         }
 
         // Otherwise wrap the match scrutinee expression in parenthesis
         let indices = 0..pattern.len();
-        quote!( (#(#message_param_ident[#mapping_param_ident.get(#indices)]),*,) )
+        quote_spanned!( span => (#(#message_param_ident[#mapping_param_ident.get(#indices)]),*,) )
     }
 
     /// Generates the guard evaluation expression code.
     /// If the guard is `None` the evaluation expression is always `true`.
-    fn guard_expression_code(guard_expr: Option<syn::Expr>) -> TokenStream {
+    fn guard_expression_code(span: Span, guard_expr: Option<syn::Expr>) -> TokenStream {
         match guard_expr {
             Some(expr) => expr.to_token_stream(),
-            None => quote!(true),
+            None => quote_spanned!(span => true),
         }
     }
 }
@@ -99,6 +110,10 @@ mod tests {
 
         fn len(&self) -> usize {
             N
+        }
+
+        fn span(&self) -> Span {
+            Span::call_site()
         }
     }
 
@@ -133,6 +148,10 @@ mod tests {
         fn body(&self) -> Expr {
             syn::parse_quote!(BODY)
         }
+
+        fn span(&self) -> Span {
+            Span::call_site()
+        }
     }
 
     // Mock PatternCodeGen trait
@@ -160,6 +179,7 @@ mod tests {
         let pattern = MockPattern::<1> {};
 
         let generated = GuardCompiler::unpacking_code(
+            Span::call_site(),
             &pattern,
             &format_ident!("msg"),
             &format_ident!("mapping"),
@@ -173,6 +193,7 @@ mod tests {
         let pattern = MockPattern::<3> {};
 
         let generated = GuardCompiler::unpacking_code(
+            Span::call_site(),
             &pattern,
             &format_ident!("msg"),
             &format_ident!("mapping"),
@@ -190,14 +211,14 @@ mod tests {
     // Guard expression code retrieval
     #[test]
     fn test_guard_is_none_expr() {
-        let generated = GuardCompiler::guard_expression_code(None);
+        let generated = GuardCompiler::guard_expression_code(Span::call_site(), None);
         assert_tokens!(generated, { true });
     }
 
     #[test]
     fn test_guard_is_some_expr() {
         let expr: syn::Expr = parse_quote!(x > 5 && y == 52);
-        let generated = GuardCompiler::guard_expression_code(Some(expr));
+        let generated = GuardCompiler::guard_expression_code(Span::call_site(), Some(expr));
         assert_tokens!(generated, { x > 5 && y == 52 });
     }
 
@@ -206,11 +227,8 @@ mod tests {
     fn test_guardcompiler_single_pattern_no_guard() {
         let case = MockCase::<1>::new(None);
 
-        let generated = GuardCompiler::generate::<MockPatternCodeGen>(
-            &case,
-            &context(),
-            &format_ident!("guard_fn"),
-        );
+        let generated =
+            GuardCompiler::generate::<MockPatternCodeGen>(&case, &context(), "guard_fn");
 
         assert_tokens!(generated, {
             fn guard_fn(
@@ -230,11 +248,8 @@ mod tests {
         let guard_expr: syn::Expr = parse_quote!(a == 1 && b < 10);
         let case = MockCase::<4>::new(Some(guard_expr));
 
-        let generated = GuardCompiler::generate::<MockPatternCodeGen>(
-            &case,
-            &context(),
-            &format_ident!("guard_fn_large"),
-        );
+        let generated =
+            GuardCompiler::generate::<MockPatternCodeGen>(&case, &context(), "guard_fn_large");
 
         assert_tokens!(generated, {
             fn guard_fn_large(

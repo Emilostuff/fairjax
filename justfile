@@ -31,3 +31,6 @@ bench benchname="":
             cargo bench --bench "$name" -- --baseline baseline; \
         done; \
     fi
+
+example name:
+    cargo r -p fairjax --example {{name}}
