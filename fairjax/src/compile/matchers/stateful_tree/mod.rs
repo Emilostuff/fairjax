@@ -6,6 +6,7 @@ use element_mapping::ElementMappingCodeGen;
 use match_arms::MatchArmCodeGen;
 use proc_macro2::{Span, TokenStream};
 
+use crate::compile::case::accept::AcceptCodeGen;
 use crate::compile::case::guard::GuardCodeGen;
 use crate::compile::pattern::full::PatternCompiler;
 use crate::compile::pattern::sub::SubPatternCompiler;
@@ -17,7 +18,12 @@ use syn::{Ident, Path};
 pub struct StatefulTreeCompiler;
 
 impl StatefulTreeCompiler {
-    pub fn generate<G: GuardCodeGen, M: MatchArmCodeGen, E: ElementMappingCodeGen>(
+    pub fn generate<
+        G: GuardCodeGen,
+        A: AcceptCodeGen,
+        M: MatchArmCodeGen,
+        E: ElementMappingCodeGen,
+    >(
         case: &dyn Case,
         context: Context,
         output_ident: &Ident,
@@ -36,6 +42,11 @@ impl StatefulTreeCompiler {
         let guard_fn_ident = Ident::new(&guard_fn_name, case.span());
         let guard_code = G::generate::<PatternCompiler>(case, &context, &guard_fn_name);
 
+        // Accept declaration code
+        let accept_fn_name = format!("fairjax_st_accept_function_{}", case.index());
+        let accept_fn_ident = Ident::new(&accept_fn_name, case.span());
+        let accept_code = A::generate::<SubPatternCompiler>(case, &context, &accept_fn_name);
+
         // Struct declaration code
         let struct_ident = Ident::new(
             &format!("FairjaxGeneratedStatefulTreeNodeData{}", case.index()),
@@ -53,6 +64,8 @@ impl StatefulTreeCompiler {
         quote_spanned! { span =>
             #guard_code
 
+            #accept_code
+
             #struct_code
 
             impl fairjax_core::strategies::stateful_tree::PartialMatch<#pattern_size, #message_type> for #struct_ident {
@@ -65,7 +78,7 @@ impl StatefulTreeCompiler {
                 #to_element_method_code
             }
 
-            let #output_ident = fairjax_core::strategies::stateful_tree::StatefulTreeMatcher::<#pattern_size, #struct_ident, #message_type>::new(#guard_fn_ident);
+            let #output_ident = fairjax_core::strategies::stateful_tree::StatefulTreeMatcher::<#pattern_size, #struct_ident, #message_type>::new(#guard_fn_ident, #accept_fn_ident);
         }
     }
 }

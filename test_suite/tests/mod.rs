@@ -4,6 +4,7 @@ pub mod random {
     pub mod many_to_one;
     pub mod pairs;
     pub mod permutations;
+    pub mod seperate_pairs;
     pub mod sums;
     pub mod transitive;
     pub mod workers;

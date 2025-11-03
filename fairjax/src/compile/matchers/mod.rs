@@ -1,6 +1,7 @@
 pub mod brute_force;
 pub mod stateful_tree;
 
+use crate::compile::case::accept::AcceptCompiler;
 use crate::compile::case::guard::GuardCompiler;
 use crate::compile::matchers::brute_force::BruteForceCompiler;
 use crate::compile::matchers::stateful_tree::StatefulTreeCompiler;
@@ -21,6 +22,7 @@ impl SetupCodeGen for Setup {
         match case.strategy() {
             Strategy::Auto | Strategy::StatefulTree => StatefulTreeCompiler::generate::<
                 GuardCompiler,
+                AcceptCompiler,
                 MatchArmCompiler,
                 ElementMappingCompiler,
             >(case, context, output_ident),

@@ -48,3 +48,7 @@ harness = false
 [[bench]]
 name = "equal_cases"
 harness = false
+
+[[bench]]
+name = "separate_pairs"
+harness = false

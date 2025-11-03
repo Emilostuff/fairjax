@@ -2,6 +2,7 @@
 
 mod compile {
     pub mod case {
+        pub mod accept;
         pub mod action;
         pub mod guard;
     }

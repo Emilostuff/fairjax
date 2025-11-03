@@ -26,6 +26,9 @@ pub type Store<M> = std::collections::HashMap<MessageId, M>;
 /// Guard function, for a case with C messages of type M in its pattern.
 pub type GuardFn<const C: usize, M> = fn(&[&M; C], &Mapping<C>) -> bool;
 
+/// Accept function that returns true when a message can be consumed by a case pattern
+pub type AcceptFn<M> = fn(&M) -> bool;
+
 /// Top interface for interacting with a case on messages of type M.
 /// K is the maximum pattern size across all cases.
 pub trait CaseHandler<M> {

@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use fairjax::*;
 use fairjax_core::MailBox;
 
@@ -13,6 +12,7 @@ fn new_a(x: usize, y: &'static str, z: bool) -> MyMsg {
 
 use MyMsg::*;
 
+#[allow(unused_variables, unreachable_patterns)]
 fn run_test(message: &MyMsg) -> usize {
     let mut mailbox: MailBox<MyMsg> = MailBox::new();
     let mut output = usize::MAX;
