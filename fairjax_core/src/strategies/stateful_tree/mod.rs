@@ -3,7 +3,8 @@ pub mod tree;
 
 use crate::MatchedIds;
 
-use crate::{CaseHandler, GuardFn, MessageId, Store};
+use crate::strategies::stateful_tree::permute::Permutations;
+use crate::{CaseHandler, GuardFn, Mapping, MessageId, Store};
 use permute::Element;
 use std::fmt::Debug;
 use tree::Node;
@@ -12,7 +13,7 @@ pub trait PartialMatch<const C: usize, M>: Sized + Debug + Default {
     fn extend(&self, message: &M, id: MessageId) -> Option<Self>;
     fn is_complete(&self) -> bool;
     fn message_ids(&self) -> &[Option<MessageId>; C];
-    fn to_elements(&self) -> [Element; C];
+    fn to_elements() -> [Element; C];
     fn final_message_ids(&self) -> [MessageId; C] {
         std::array::from_fn(|i| self.message_ids()[i].unwrap())
     }
@@ -28,6 +29,7 @@ pub trait PartialMatch<const C: usize, M>: Sized + Debug + Default {
 pub struct StatefulTreeMatcher<const C: usize, P: PartialMatch<C, M>, M> {
     tree: Node<C, P, M>,
     guard_fn: GuardFn<C, M>,
+    mappings: Vec<Mapping<C>>,
 }
 
 impl<const C: usize, P: PartialMatch<C, M>, M> StatefulTreeMatcher<C, P, M> {
@@ -35,6 +37,7 @@ impl<const C: usize, P: PartialMatch<C, M>, M> StatefulTreeMatcher<C, P, M> {
         Self {
             tree: Node::<C, P, M>::new(),
             guard_fn,
+            mappings: Permutations::get_permutations(P::to_elements()),
         }
     }
 }
@@ -42,7 +45,8 @@ impl<const C: usize, P: PartialMatch<C, M>, M> StatefulTreeMatcher<C, P, M> {
 impl<const C: usize, P: PartialMatch<C, M>, M> CaseHandler<M> for StatefulTreeMatcher<C, P, M> {
     fn consume(&mut self, id: MessageId, store: &Store<M>) -> Option<MatchedIds> {
         let message = &store[&id];
-        self.tree.ramification(message, id, store, &self.guard_fn)
+        self.tree
+            .ramification(message, id, store, &self.guard_fn, &self.mappings)
     }
 
     fn remove(&mut self, messages: &MatchedIds) {

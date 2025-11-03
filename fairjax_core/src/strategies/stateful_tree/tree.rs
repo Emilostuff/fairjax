@@ -1,6 +1,5 @@
 use super::PartialMatch;
-use super::permute::Permutations;
-use crate::{GuardFn, MatchedIds, MessageId, Store};
+use crate::{GuardFn, Mapping, MatchedIds, MessageId, Store};
 
 #[derive(Default)]
 pub struct Node<const C: usize, P: PartialMatch<C, M> + Default, M> {
@@ -24,11 +23,12 @@ impl<const C: usize, P: PartialMatch<C, M> + Default, M> Node<C, P, M> {
         id: MessageId,
         store: &Store<M>,
         guard_fn: &GuardFn<C, M>,
+        mappings: &[Mapping<C>],
     ) -> Option<MatchedIds> {
         if let Some(new_group) = self.group.extend(&message, id) {
             // Run ramification DFS style
             for child in &mut self.children {
-                if let Some(result) = child.ramification(message, id, store, guard_fn) {
+                if let Some(result) = child.ramification(message, id, store, guard_fn, &mappings) {
                     return Some(result);
                 }
             }
@@ -42,13 +42,10 @@ impl<const C: usize, P: PartialMatch<C, M> + Default, M> Node<C, P, M> {
                     &store[&id]
                 });
 
-                // Create permutation elements and get all message permutations
-                let mappings = Permutations::get_permutations(new_group.to_elements());
-
                 // Find fairest match that satisfies guard
                 for mapping in mappings {
                     if guard_fn(&messages, &mapping) {
-                        return Some(MatchedIds::from(message_ids, mapping));
+                        return Some(MatchedIds::from(message_ids, mapping.clone()));
                     }
                 }
             } else {

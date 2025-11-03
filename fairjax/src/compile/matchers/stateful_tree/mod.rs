@@ -138,7 +138,7 @@ impl StatefulTreeCompiler {
         let element_mappings = E::generate(span, profile);
 
         quote_spanned! { span =>
-            fn to_elements(&self) -> [fairjax_core::strategies::stateful_tree::permute::Element; #pattern_size] {
+            fn to_elements() -> [fairjax_core::strategies::stateful_tree::permute::Element; #pattern_size] {
                 #element_mappings
             }
         }
