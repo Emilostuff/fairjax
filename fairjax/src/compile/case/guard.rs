@@ -53,6 +53,7 @@ impl GuardCodeGen for GuardCompiler {
                 #messages_param_ident: &[&#message_type; #pattern_len],
                 #mapping_param_ident: &fairjax_core::Mapping<#pattern_len>,
             ) -> bool {
+                #[allow(unused_variables)]
                 match #unpacking {
                     #pattern => #guard_expr,
                     _ => false,
@@ -235,6 +236,7 @@ mod tests {
                 messages: &[&MSG_TYPE; 1usize],
                 mapping: &fairjax_core::Mapping<1usize>,
             ) -> bool {
+                #[allow(unused_variables)]
                 match messages[mapping.get(0usize)] {
                     SIZE_1 => true,
                     _ => false,
@@ -256,6 +258,7 @@ mod tests {
                 messages: &[&MSG_TYPE; 4usize],
                 mapping: &fairjax_core::Mapping<4usize>,
             ) -> bool {
+                #[allow(unused_variables)]
                 match (
                     messages[mapping.get(0usize)],
                     messages[mapping.get(1usize)],

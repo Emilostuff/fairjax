@@ -23,6 +23,7 @@ impl ActionSectionCodeGen for ActionSection {
         let result_ident = Ident::new(result_name, Span::call_site());
 
         quote! {
+            #[allow(unused_variables)]
             match #result_ident.case_id() {
                 #(&fairjax_core::CaseId(#indices) => #actions),*,
                 _ => panic!(),
@@ -85,6 +86,7 @@ mod tests {
         let generated = ActionSection::generate::<MockActionCodeGen>(vec![&case], "result");
 
         assert_tokens!(generated, {
+            #[allow(unused_variables)]
             match result.case_id() {
                 &fairjax_core::CaseId(0usize) => ACTION_0,
                 _ => panic!(),
@@ -102,6 +104,7 @@ mod tests {
         );
 
         assert_tokens!(generated, {
+            #[allow(unused_variables)]
             match result.case_id() {
                 &fairjax_core::CaseId(0usize) => ACTION_0,
                 &fairjax_core::CaseId(1usize) => ACTION_1,

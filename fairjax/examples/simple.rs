@@ -2,7 +2,6 @@
 pub enum Msg {
     A(usize),
     B(usize),
-    //C(usize),
 }
 
 use Msg::*;
