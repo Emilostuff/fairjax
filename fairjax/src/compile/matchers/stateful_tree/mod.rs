@@ -1,13 +1,13 @@
-pub mod element_mapping;
+pub mod mappings;
 pub mod match_arms;
 pub mod profile;
 
-use element_mapping::ElementMappingCodeGen;
 use match_arms::MatchArmCodeGen;
 use proc_macro2::{Span, TokenStream};
 
 use crate::compile::case::accept::AcceptCodeGen;
 use crate::compile::case::guard::GuardCodeGen;
+use crate::compile::matchers::stateful_tree::mappings::MappingCodeGen;
 use crate::compile::pattern::full::PatternCompiler;
 use crate::compile::pattern::sub::SubPatternCompiler;
 use crate::parse::{case::Case, context::Context};
@@ -18,12 +18,7 @@ use syn::{Ident, Path};
 pub struct StatefulTreeCompiler;
 
 impl StatefulTreeCompiler {
-    pub fn generate<
-        G: GuardCodeGen,
-        A: AcceptCodeGen,
-        M: MatchArmCodeGen,
-        E: ElementMappingCodeGen,
-    >(
+    pub fn generate<G: GuardCodeGen, A: AcceptCodeGen, M: MatchArmCodeGen, MP: MappingCodeGen>(
         case: &dyn Case,
         context: Context,
         output_ident: &Ident,
@@ -47,6 +42,11 @@ impl StatefulTreeCompiler {
         let accept_fn_ident = Ident::new(&accept_fn_name, case.span());
         let accept_code = A::generate::<SubPatternCompiler>(case, &context, &accept_fn_name);
 
+        // Mappings declaration code
+        let mappings_name = format!("FAIRJAX_ST_MAPPINGS_{}", case.index());
+        let mappings_ident = Ident::new(&mappings_name, case.span());
+        let mappings_code = MP::generate(span, &profile, &mappings_ident);
+
         // Struct declaration code
         let struct_ident = Ident::new(
             &format!("FairjaxGeneratedStatefulTreeNodeData{}", case.index()),
@@ -54,17 +54,18 @@ impl StatefulTreeCompiler {
         );
         let struct_code = Self::gen_struct_declaration_code(span, &struct_ident, pattern_size);
 
-        // Struct methods declrataion code
+        // Struct methods declarataion code
         let extent_method_code = Self::gen_extend_code::<M>(span, &profile, &message_type);
         let is_complete_code = Self::gen_is_complete_code(span, pattern_size);
         let message_ids_method_code = Self::gen_message_ids_code(span, pattern_size);
-        let to_element_method_code = Self::gen_to_elements_code::<E>(span, &profile, pattern_size);
 
         // Assemble
         quote_spanned! { span =>
             #guard_code
 
             #accept_code
+
+            #mappings_code
 
             #struct_code
 
@@ -74,11 +75,9 @@ impl StatefulTreeCompiler {
                 #is_complete_code
 
                 #message_ids_method_code
-
-                #to_element_method_code
             }
 
-            let #output_ident = fairjax_core::strategies::stateful_tree::StatefulTreeMatcher::<#pattern_size, #struct_ident, #message_type>::new(#guard_fn_ident, #accept_fn_ident);
+            let #output_ident = fairjax_core::strategies::stateful_tree::StatefulTreeMatcher::<#pattern_size, #struct_ident, #message_type>::new(#guard_fn_ident, #accept_fn_ident, &#mappings_ident);
         }
     }
 }
@@ -139,20 +138,6 @@ impl StatefulTreeCompiler {
         quote_spanned! { span =>
             fn message_ids(&self) -> &[Option<fairjax_core::MessageId>; #pattern_size] {
                 &self.messages
-            }
-        }
-    }
-
-    fn gen_to_elements_code<E: ElementMappingCodeGen>(
-        span: Span,
-        profile: &PatternProfile,
-        pattern_size: usize,
-    ) -> TokenStream {
-        let element_mappings = E::generate(span, profile);
-
-        quote_spanned! { span =>
-            fn to_elements() -> [fairjax_core::strategies::stateful_tree::permute::Element; #pattern_size] {
-                #element_mappings
             }
         }
     }

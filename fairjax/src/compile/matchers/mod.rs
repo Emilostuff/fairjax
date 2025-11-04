@@ -5,7 +5,7 @@ use crate::compile::case::accept::AcceptCompiler;
 use crate::compile::case::guard::GuardCompiler;
 use crate::compile::matchers::brute_force::BruteForceCompiler;
 use crate::compile::matchers::stateful_tree::StatefulTreeCompiler;
-use crate::compile::matchers::stateful_tree::element_mapping::ElementMappingCompiler;
+use crate::compile::matchers::stateful_tree::mappings::MappingCompiler;
 use crate::compile::matchers::stateful_tree::match_arms::MatchArmCompiler;
 use crate::parse::{case::Case, context::Context, strategy::Strategy};
 use proc_macro2::TokenStream;
@@ -24,7 +24,7 @@ impl SetupCodeGen for Setup {
                 GuardCompiler,
                 AcceptCompiler,
                 MatchArmCompiler,
-                ElementMappingCompiler,
+                MappingCompiler,
             >(case, context, output_ident),
             Strategy::BruteForce => {
                 BruteForceCompiler::generate::<GuardCompiler>(case, context, output_ident)

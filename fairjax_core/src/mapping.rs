@@ -2,7 +2,7 @@
 /// into a pattern-specific sequence. For pattern position `i`, `mapping[i]` gives
 /// the stored sequence index where that message should be retrieved from.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Mapping<const C: usize>([usize; C]);
+pub struct Mapping<const C: usize>(pub [usize; C]);
 
 impl<const C: usize> Mapping<C> {
     #[inline]

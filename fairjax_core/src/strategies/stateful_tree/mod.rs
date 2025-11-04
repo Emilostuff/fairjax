@@ -3,9 +3,7 @@ pub mod tree;
 
 use crate::{AcceptFn, MatchedIds};
 
-use crate::strategies::stateful_tree::permute::Permutations;
 use crate::{CaseHandler, GuardFn, Mapping, MessageId, Store};
-use permute::Element;
 use std::fmt::Debug;
 use tree::Node;
 
@@ -13,7 +11,6 @@ pub trait PartialMatch<const C: usize, M>: Sized + Debug + Default {
     fn extend(&self, message: &M, id: MessageId) -> Option<Self>;
     fn is_complete(&self) -> bool;
     fn message_ids(&self) -> &[Option<MessageId>; C];
-    fn to_elements() -> [Element; C];
     fn final_message_ids(&self) -> [MessageId; C] {
         std::array::from_fn(|i| self.message_ids()[i].unwrap())
     }
@@ -30,16 +27,20 @@ pub struct StatefulTreeMatcher<const C: usize, P: PartialMatch<C, M>, M> {
     tree: Node<C, P, M>,
     guard_fn: GuardFn<C, M>,
     accept_fn: AcceptFn<M>,
-    mappings: Vec<Mapping<C>>,
+    mappings: &'static [Mapping<C>],
 }
 
 impl<const C: usize, P: PartialMatch<C, M>, M> StatefulTreeMatcher<C, P, M> {
-    pub fn new(guard_fn: GuardFn<C, M>, accept_fn: AcceptFn<M>) -> Self {
+    pub fn new(
+        guard_fn: GuardFn<C, M>,
+        accept_fn: AcceptFn<M>,
+        mappings: &'static [Mapping<C>],
+    ) -> Self {
         Self {
             tree: Node::<C, P, M>::new(),
             guard_fn,
             accept_fn,
-            mappings: Permutations::get_permutations(P::to_elements()),
+            mappings,
         }
     }
 }
@@ -50,7 +51,7 @@ impl<const C: usize, P: PartialMatch<C, M>, M> CaseHandler<M> for StatefulTreeMa
         if (self.accept_fn)(message) {
             return self
                 .tree
-                .ramification(message, id, store, &self.guard_fn, &self.mappings);
+                .ramification(message, id, store, &self.guard_fn, self.mappings);
         }
         None
     }
