@@ -6,7 +6,7 @@ use crate::{Mapping, MessageId};
 pub struct MatchedIdsSorted(pub(super) Vec<MessageId>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
-pub struct MatchedIds(pub(super) Vec<MessageId>);
+pub struct MatchedIds(pub Vec<MessageId>);
 
 impl MatchedIds {
     #[cfg(test)]

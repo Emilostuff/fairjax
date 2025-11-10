@@ -11,7 +11,7 @@ impl BruteForceCompiler {
     pub fn generate<G: GuardCodeGen>(
         bundle: &dyn CaseBundle,
         context: Context,
-        output_ident: &Ident,
+        factory_ident: &Ident,
     ) -> TokenStream {
         let case = bundle.case();
 
@@ -28,7 +28,7 @@ impl BruteForceCompiler {
         quote_spanned! {case.span() =>
             #guard_code
 
-            let #output_ident = fairjax_core::strategies::brute_force::BruteForceMatcher::<#pattern_size, #message_type>::new(#guard_fn_ident);
+            let #factory_ident = || Box::new(fairjax_core::strategies::brute_force::BruteForceMatcher::<#pattern_size, #message_type>::new(#guard_fn_ident)) as Box<dyn fairjax_core::CaseHandler<#message_type>>;
         }
     }
 }

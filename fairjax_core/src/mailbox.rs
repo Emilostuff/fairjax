@@ -40,7 +40,7 @@ impl<M> MailBox<M> {
 
     fn remove_message_ids_from_cases(&mut self, messages: &MatchedIds) {
         for case in &mut self.cases {
-            case.remove(messages);
+            case.remove(messages, &self.store);
         }
     }
 
@@ -92,7 +92,7 @@ mod tests {
                 None
             }
         }
-        fn remove(&mut self, _messages: &MatchedIds) {}
+        fn remove(&mut self, _messages: &MatchedIds, _store: &Store<TestMessage>) {}
     }
 
     struct MockCase1;
@@ -104,7 +104,7 @@ mod tests {
                 None
             }
         }
-        fn remove(&mut self, _messages: &MatchedIds) {}
+        fn remove(&mut self, _messages: &MatchedIds, _store: &Store<TestMessage>) {}
     }
 
     #[test]

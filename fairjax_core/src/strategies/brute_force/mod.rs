@@ -1,6 +1,7 @@
 use crate::{CaseHandler, GuardFn, Mapping, MatchedIds, MessageId, Store};
 use itertools::Itertools;
 
+#[derive(Clone)]
 pub struct BruteForceMatcher<const C: usize, M> {
     message_ids: Vec<MessageId>,
     guard_fn: GuardFn<C, M>,
@@ -59,7 +60,7 @@ impl<const C: usize, M> CaseHandler<M> for BruteForceMatcher<C, M> {
         self.try_all_slices_in_sorted_lex_order(store)
     }
 
-    fn remove(&mut self, messages: &MatchedIds) {
+    fn remove(&mut self, messages: &MatchedIds, _store: &Store<M>) {
         self.message_ids.retain(|id| !messages.contains(id));
     }
 }

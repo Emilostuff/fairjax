@@ -13,27 +13,24 @@ use proc_macro2::TokenStream;
 use syn::Ident;
 
 pub trait SetupCodeGen {
-    fn generate(case: &dyn CaseBundle, context: Context, output_ident: &Ident) -> TokenStream;
+    fn generate(case: &dyn CaseBundle, context: Context, factory_ident: &Ident) -> TokenStream;
 }
 
 pub struct Setup;
 
 impl SetupCodeGen for Setup {
-    fn generate(case: &dyn CaseBundle, context: Context, output_ident: &Ident) -> TokenStream {
+    fn generate(case: &dyn CaseBundle, context: Context, factory_ident: &Ident) -> TokenStream {
         match case.strategy() {
             Strategy::StatefulTree => StatefulTreeCompiler::generate::<
                 GuardCompiler,
                 AcceptCompiler,
                 MatchArmCompiler,
                 MappingCompiler,
-            >(case, context, output_ident),
+            >(case, context, factory_ident),
             Strategy::BruteForce => {
-                BruteForceCompiler::generate::<GuardCompiler>(case, context, output_ident)
+                BruteForceCompiler::generate::<GuardCompiler>(case, context, factory_ident)
             }
-            Strategy::Partitions {
-                vars,
-                pattern: inner_case,
-            } => todo!(),
+            Strategy::Partitions { vars, pattern } => todo!(),
         }
     }
 }

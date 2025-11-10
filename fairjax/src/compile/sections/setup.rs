@@ -13,13 +13,13 @@ impl SetupSectionCodeGen for SetupSection {
     fn generate<S: SetupCodeGen>(def: &dyn Definition) -> TokenStream {
         let mailbox = def.context().mailbox;
 
-        let identifiers: Vec<_> = def
+        let matcher_factories: Vec<_> = def
             .cases()
             .iter()
-            .map(|cb| syn::Ident::new(&format!("case{}", cb.case().index()), Span::call_site()))
+            .map(|cb| syn::Ident::new(&format!("matcher{}", cb.case().index()), Span::call_site()))
             .collect();
 
-        let setups = identifiers
+        let setups = matcher_factories
             .iter()
             .zip(def.cases().iter())
             .map(|(ident, case)| S::generate(*case, def.context(), ident))
@@ -28,7 +28,7 @@ impl SetupSectionCodeGen for SetupSection {
         quote_spanned! { Span::call_site() =>
             #(
                 #setups
-                #mailbox.add_case(Box::new(#identifiers));
+                #mailbox.add_case(#matcher_factories());
             )*
         }
     }
@@ -125,7 +125,7 @@ mod tests {
         };
         let result = SetupSection::generate::<MockSetupCodeGen>(&def);
 
-        assert_tokens!(result, { setup0_case0 mailbox.add_case(Box::new(case0)); });
+        assert_tokens!(result, { setup0_matcher0 mailbox.add_case(matcher0()); });
     }
 
     #[test]
@@ -151,9 +151,9 @@ mod tests {
         let result = SetupSection::generate::<MockSetupCodeGen>(&def);
 
         assert_tokens!(result, {
-            setup0_case0 mailbox.add_case(Box::new(case0));
-            setup1_case1 mailbox.add_case(Box::new(case1));
-            setup2_case2 mailbox.add_case(Box::new(case2));
+            setup0_matcher0 mailbox.add_case(matcher0());
+            setup1_matcher1 mailbox.add_case(matcher1());
+            setup2_matcher2 mailbox.add_case(matcher2());
         });
     }
 }

@@ -17,7 +17,7 @@ impl StatefulTreeCompiler {
     pub fn generate<G: GuardCodeGen, A: AcceptCodeGen, M: MatchArmCodeGen, MP: MappingCodeGen>(
         bundle: &dyn CaseBundle,
         context: Context,
-        output_ident: &Ident,
+        factory_ident: &Ident,
     ) -> TokenStream {
         let case = bundle.case();
         let span = case.span();
@@ -71,7 +71,7 @@ impl StatefulTreeCompiler {
                 #message_ids_method_code
             }
 
-            let #output_ident = fairjax_core::strategies::stateful_tree::StatefulTreeMatcher::<#pattern_size, #struct_ident, #message_type>::new(#guard_fn_ident, #accept_fn_ident, &#mappings_ident);
+            let #factory_ident = || Box::new(fairjax_core::strategies::stateful_tree::StatefulTreeMatcher::<#pattern_size, #struct_ident, #message_type>::new(#guard_fn_ident, #accept_fn_ident, &#mappings_ident)) as Box<dyn fairjax_core::CaseHandler<#message_type>>;
         }
     }
 }
