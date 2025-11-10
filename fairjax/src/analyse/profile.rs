@@ -1,22 +1,21 @@
-use crate::parse::pattern::Pattern;
-use crate::parse::sub_pattern::SubPattern;
+use crate::traits::Pattern;
 use std::collections::BTreeMap;
 
 #[derive(Clone)]
 /// Statistics for a sub-pattern: how many times it appears and where
-pub struct SubPatternStats<'a> {
-    pub sub_pattern: &'a dyn SubPattern,
+pub struct MessageGroup {
+    pub sub_pattern_index: usize,
     pub occurrences: usize,
     pub positions: Vec<usize>,
 }
 
 /// Analyzes a pattern to collect statistics about all its sub-patterns
-pub struct PatternProfile<'a>(pub Vec<SubPatternStats<'a>>);
+pub struct PatternProfile(pub Vec<MessageGroup>);
 
-impl<'a> PatternProfile<'a> {
-    pub fn new(pattern: &'a dyn Pattern) -> Self {
+impl PatternProfile {
+    pub fn new(pattern: &dyn Pattern) -> Self {
         // Perform analysis on Sub Patterns, tracking their positions and occurences in the pattern
-        let mut sp_stats: BTreeMap<String, SubPatternStats> = BTreeMap::new();
+        let mut sp_stats: BTreeMap<String, MessageGroup> = BTreeMap::new();
 
         for (position, &sub_pattern) in pattern.sub_patterns().iter().enumerate() {
             let identifier = sub_pattern.get_identifier().to_string();
@@ -27,8 +26,8 @@ impl<'a> PatternProfile<'a> {
                     stats.occurrences += 1;
                     stats.positions.push(position);
                 })
-                .or_insert(SubPatternStats {
-                    sub_pattern,
+                .or_insert(MessageGroup {
+                    sub_pattern_index: position,
                     occurrences: 1,
                     positions: vec![position],
                 });
@@ -36,12 +35,18 @@ impl<'a> PatternProfile<'a> {
 
         Self(sp_stats.into_values().collect())
     }
+
+    /// Pattern does not have any repeated message variants
+    pub fn is_distinct(&self) -> bool {
+        self.0.iter().all(|group| group.occurrences == 1)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parse::sub_pattern::{SubPattern, SubPatternDefinition};
+    use crate::parse::sub_pattern::SubPatternDefinition;
+    use crate::traits::SubPattern;
     use proc_macro2::Span;
     use syn::Ident;
 
@@ -104,7 +109,7 @@ mod tests {
 
         // Check the stats
         let s0 = result.0[0].clone();
-        assert_eq!(&ident("X"), s0.sub_pattern.get_identifier());
+        assert_eq!(0, s0.sub_pattern_index);
         assert_eq!(1, s0.occurrences);
         assert_eq!(vec![0], s0.positions);
     }
@@ -119,12 +124,12 @@ mod tests {
 
         // Check the stats
         let s0 = result.0[0].clone();
-        assert_eq!(&ident("A"), s0.sub_pattern.get_identifier());
+        assert_eq!(0, s0.sub_pattern_index);
         assert_eq!(2, s0.occurrences);
         assert_eq!(vec![0, 1], s0.positions);
 
         let s1 = result.0[1].clone();
-        assert_eq!(&ident("B"), s1.sub_pattern.get_identifier());
+        assert_eq!(2, s1.sub_pattern_index);
         assert_eq!(1, s1.occurrences);
         assert_eq!(vec![2], s1.positions);
     }
@@ -140,27 +145,27 @@ mod tests {
 
         // Check stats
         let s0 = &result.0[0];
-        assert_eq!(&ident("A"), s0.sub_pattern.get_identifier());
+        assert_eq!(0, s0.sub_pattern_index);
         assert_eq!(4, s0.occurrences);
         assert_eq!(vec![0, 2, 6, 11], s0.positions);
 
         let s1 = &result.0[1];
-        assert_eq!(&ident("B"), s1.sub_pattern.get_identifier());
+        assert_eq!(1, s1.sub_pattern_index);
         assert_eq!(3, s1.occurrences);
         assert_eq!(vec![1, 4, 9], s1.positions);
 
         let s2 = &result.0[2];
-        assert_eq!(&ident("C"), s2.sub_pattern.get_identifier());
+        assert_eq!(3, s2.sub_pattern_index);
         assert_eq!(2, s2.occurrences);
         assert_eq!(vec![3, 7], s2.positions);
 
         let s3 = &result.0[3];
-        assert_eq!(&ident("D"), s3.sub_pattern.get_identifier());
+        assert_eq!(5, s3.sub_pattern_index);
         assert_eq!(2, s3.occurrences);
         assert_eq!(vec![5, 10], s3.positions);
 
         let s4 = &result.0[4];
-        assert_eq!(&ident("E"), s4.sub_pattern.get_identifier());
+        assert_eq!(8, s4.sub_pattern_index);
         assert_eq!(1, s4.occurrences);
         assert_eq!(vec![8], s4.positions);
     }

@@ -1,19 +1,20 @@
-use crate::compile::matchers::stateful_tree::profile::PatternProfile;
+use crate::traits::CaseBundle;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote_spanned;
 
 /// Generates element mappings that define subpattern positions for permutation algorithms
 pub trait MappingCodeGen {
     /// Generate code creating Element instances for each unique subpattern in the pattern
-    fn generate(span: Span, profile: &PatternProfile, ident: &Ident) -> TokenStream;
+    fn generate(span: Span, bundle: &dyn CaseBundle, ident: &Ident) -> TokenStream;
 }
 
 pub struct MappingCompiler;
 
 impl MappingCodeGen for MappingCompiler {
-    fn generate(span: Span, profile: &PatternProfile, ident: &Ident) -> TokenStream {
+    fn generate(span: Span, bundle: &dyn CaseBundle, ident: &Ident) -> TokenStream {
         // Generate Element instances containing position lists for each subpattern
-        let inputs: Vec<Vec<usize>> = profile
+        let inputs: Vec<Vec<usize>> = bundle
+            .pattern_profile()
             .0
             .iter()
             .flat_map(|sp_stats| {

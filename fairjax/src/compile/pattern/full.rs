@@ -1,5 +1,5 @@
 use crate::compile::pattern::sub::SubPatternCodeGen;
-use crate::parse::pattern::Pattern;
+use crate::traits::Pattern;
 use proc_macro2::TokenStream;
 use quote::quote_spanned;
 
@@ -33,7 +33,8 @@ impl PatternCodeGen for PatternCompiler {
 mod tests {
     use super::*;
     use crate::compile::pattern::sub::SubPatternCodeGen;
-    use crate::parse::sub_pattern::{SubPattern, SubPatternDefinition};
+    use crate::parse::sub_pattern::SubPatternDefinition;
+    use crate::traits::SubPattern;
     use proc_macro_utils::assert_tokens;
     use proc_macro2::{Span, TokenStream};
     use quote::quote;

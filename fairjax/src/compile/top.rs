@@ -1,8 +1,8 @@
 use crate::compile::case::action::Action;
 use crate::compile::matchers::Setup;
-use crate::compile::sections::action::ActionSectionCodeGen;
-use crate::compile::sections::setup::SetupSectionCodeGen;
-use crate::parse::{context::Context, definition::Definition};
+use crate::compile::sections::{action::ActionSectionCodeGen, setup::SetupSectionCodeGen};
+use crate::parse::context::Context;
+use crate::traits::Definition;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::Ident;

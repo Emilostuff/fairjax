@@ -7,6 +7,9 @@ setup:
 expand_macro:
     cd test_suite && cargo expand --tests
 
+clear:
+    printf '\033c'
+
 test arg="":
     cargo nextest run -r {{arg}}
 

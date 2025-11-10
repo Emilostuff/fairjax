@@ -1,25 +1,4 @@
-use syn::{Ident, Pat, PatIdent, PatPath, PatStruct, PatTupleStruct, Result};
-
-pub trait SubPattern {
-    fn get(&self) -> SubPatternDefinition;
-    fn get_identifier(&self) -> &Ident;
-}
-
-impl SubPattern for SubPatternDefinition {
-    fn get(&self) -> SubPatternDefinition {
-        self.clone()
-    }
-
-    /// Get identifier that can be used to determine if two sub-patterns are of the same type.
-    fn get_identifier(&self) -> &Ident {
-        match self {
-            SubPatternDefinition::Ident(ident) => &ident.ident,
-            SubPatternDefinition::Path(p) => &p.path.segments.last().unwrap().ident,
-            SubPatternDefinition::TupleStruct(p) => &p.path.segments.last().unwrap().ident,
-            SubPatternDefinition::Struct(p) => &p.path.segments.last().unwrap().ident,
-        }
-    }
-}
+use syn::{Pat, PatIdent, PatPath, PatStruct, PatTupleStruct, Result};
 
 #[derive(Clone)]
 /// A stand-alone part of a pattern, mapping to exactly one message.
@@ -45,11 +24,23 @@ impl SubPatternDefinition {
             )),
         }
     }
+
+    pub fn to_pattern(&self) -> Pat {
+        match self {
+            SubPatternDefinition::Ident(ident) => Pat::Ident(ident.clone()),
+            SubPatternDefinition::Path(path) => Pat::Path(path.clone()),
+            SubPatternDefinition::TupleStruct(tuple_struct) => {
+                Pat::TupleStruct(tuple_struct.clone())
+            }
+            SubPatternDefinition::Struct(struct_pat) => Pat::Struct(struct_pat.clone()),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::traits::SubPattern;
     use syn::{Pat, parse_quote};
 
     #[test]

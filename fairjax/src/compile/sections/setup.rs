@@ -1,4 +1,5 @@
-use crate::{compile::matchers::SetupCodeGen, parse::definition::Definition};
+use crate::compile::matchers::SetupCodeGen;
+use crate::traits::Definition;
 use proc_macro2::{Span, TokenStream};
 use quote::quote_spanned;
 
@@ -15,7 +16,7 @@ impl SetupSectionCodeGen for SetupSection {
         let identifiers: Vec<_> = def
             .cases()
             .iter()
-            .map(|c| syn::Ident::new(&format!("case{}", c.index()), Span::call_site()))
+            .map(|cb| syn::Ident::new(&format!("case{}", cb.case().index()), Span::call_site()))
             .collect();
 
         let setups = identifiers
@@ -36,23 +37,45 @@ impl SetupSectionCodeGen for SetupSection {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::analyse::profile::PatternProfile;
+    use crate::analyse::strategy::Strategy;
     use crate::parse::context::Context;
+    use crate::traits::{Case, CaseBundle, Definition, Pattern, SubPattern};
     use proc_macro_utils::assert_tokens;
     use proc_macro2::{Span, TokenStream};
     use quote::{ToTokens, format_ident};
+
+    struct MockCaseBundle {
+        case: MockCase,
+    }
+
+    impl CaseBundle for MockCaseBundle {
+        fn case(&self) -> &dyn Case {
+            &self.case
+        }
+        fn strategy(&self) -> &Strategy {
+            unimplemented!()
+        }
+
+        fn pattern_profile(&self) -> &PatternProfile {
+            unimplemented!()
+        }
+
+        fn sub_pattern_at_index(&self, _index: usize) -> &dyn SubPattern {
+            unimplemented!()
+        }
+    }
 
     // Mock Case
     struct MockCase {
         id: usize,
     }
-    impl crate::parse::case::Case for MockCase {
+
+    impl Case for MockCase {
         fn index(&self) -> usize {
             self.id
         }
-        fn strategy(&self) -> crate::parse::strategy::Strategy {
-            unimplemented!()
-        }
-        fn pattern(&self) -> &dyn crate::parse::pattern::Pattern {
+        fn pattern(&self) -> &dyn Pattern {
             unimplemented!()
         }
         fn guard(&self) -> Option<syn::Expr> {
@@ -68,15 +91,12 @@ mod tests {
 
     // Mock Definition
     struct MockDefinition {
-        cases: Vec<MockCase>,
+        cases: Vec<MockCaseBundle>,
         context: Context,
     }
-    impl crate::parse::definition::Definition for MockDefinition {
-        fn cases(&self) -> Vec<&dyn crate::parse::case::Case> {
-            self.cases
-                .iter()
-                .map(|c| c as &dyn crate::parse::case::Case)
-                .collect()
+    impl Definition for MockDefinition {
+        fn cases(&self) -> Vec<&dyn CaseBundle> {
+            self.cases.iter().map(|c| c as &dyn CaseBundle).collect()
         }
         fn context(&self) -> Context {
             self.context.clone()
@@ -86,19 +106,17 @@ mod tests {
     // Mock SetupCodeGen
     struct MockSetupCodeGen;
     impl SetupCodeGen for MockSetupCodeGen {
-        fn generate(
-            case: &dyn crate::parse::case::Case,
-            _context: Context,
-            ident: &syn::Ident,
-        ) -> TokenStream {
-            format_ident!("setup{}_{}", case.index(), ident).to_token_stream()
+        fn generate(case: &dyn CaseBundle, _context: Context, ident: &syn::Ident) -> TokenStream {
+            format_ident!("setup{}_{}", case.case().index(), ident).to_token_stream()
         }
     }
 
     #[test]
     fn test_single_case() {
         let def = MockDefinition {
-            cases: vec![MockCase { id: 0 }],
+            cases: vec![MockCaseBundle {
+                case: MockCase { id: 0 },
+            }],
             context: Context {
                 incoming_message: syn::parse_quote! { msg },
                 mailbox: syn::parse_quote! { mailbox },
@@ -113,7 +131,17 @@ mod tests {
     #[test]
     fn test_multiple_cases() {
         let def = MockDefinition {
-            cases: vec![MockCase { id: 0 }, MockCase { id: 1 }, MockCase { id: 2 }],
+            cases: vec![
+                MockCaseBundle {
+                    case: MockCase { id: 0 },
+                },
+                MockCaseBundle {
+                    case: MockCase { id: 1 },
+                },
+                MockCaseBundle {
+                    case: MockCase { id: 2 },
+                },
+            ],
             context: Context {
                 incoming_message: syn::parse_quote! { msg },
                 mailbox: syn::parse_quote! { mailbox },

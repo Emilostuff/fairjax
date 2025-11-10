@@ -1,25 +1,29 @@
-use crate::{
-    compile::{case::action::ActionCodeGen, pattern::full::PatternCompiler},
-    parse::case::Case,
-};
+use crate::compile::{case::action::ActionCodeGen, pattern::full::PatternCompiler};
+use crate::traits::CaseBundle;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::Ident;
 
 pub trait ActionSectionCodeGen {
-    fn generate<A: ActionCodeGen>(cases: Vec<&dyn Case>, result_name: &'static str) -> TokenStream;
+    fn generate<A: ActionCodeGen>(
+        cases: Vec<&dyn CaseBundle>,
+        result_name: &'static str,
+    ) -> TokenStream;
 }
 
 pub struct ActionSection;
 
 impl ActionSectionCodeGen for ActionSection {
-    fn generate<A: ActionCodeGen>(cases: Vec<&dyn Case>, result_name: &'static str) -> TokenStream {
+    fn generate<A: ActionCodeGen>(
+        cases: Vec<&dyn CaseBundle>,
+        result_name: &'static str,
+    ) -> TokenStream {
         let actions = cases
             .iter()
-            .map(|c| A::generate::<PatternCompiler>(*c, result_name))
+            .map(|cb| A::generate::<PatternCompiler>(cb.case(), result_name))
             .collect::<Vec<TokenStream>>();
 
-        let indices = cases.iter().map(|c| c.index());
+        let indices = cases.iter().map(|cb| cb.case().index());
         let result_ident = Ident::new(result_name, Span::call_site());
 
         quote! {
@@ -35,10 +39,34 @@ impl ActionSectionCodeGen for ActionSection {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::analyse::profile::PatternProfile;
+    use crate::analyse::strategy::Strategy;
+    use crate::traits::{Case, Pattern, SubPattern};
     use proc_macro_utils::assert_tokens;
     use proc_macro2::TokenStream;
     use quote::{ToTokens, format_ident};
     use syn::Expr;
+
+    struct MockCaseBundle {
+        case: MockCase,
+    }
+
+    impl CaseBundle for MockCaseBundle {
+        fn case(&self) -> &dyn Case {
+            &self.case
+        }
+        fn strategy(&self) -> &Strategy {
+            unimplemented!()
+        }
+
+        fn pattern_profile(&self) -> &PatternProfile {
+            unimplemented!()
+        }
+
+        fn sub_pattern_at_index(&self, _index: usize) -> &dyn SubPattern {
+            unimplemented!()
+        }
+    }
 
     // Mock Case
     struct MockCase {
@@ -49,10 +77,7 @@ mod tests {
         fn index(&self) -> usize {
             self.id
         }
-        fn strategy(&self) -> crate::parse::strategy::Strategy {
-            unimplemented!()
-        }
-        fn pattern(&self) -> &dyn crate::parse::pattern::Pattern {
+        fn pattern(&self) -> &dyn Pattern {
             unimplemented!()
         }
         fn guard(&self) -> Option<Expr> {
@@ -82,8 +107,9 @@ mod tests {
     #[test]
     fn test_generate_single_case() {
         let case = MockCase { id: 0 };
+        let bundle = MockCaseBundle { case: case };
 
-        let generated = ActionSection::generate::<MockActionCodeGen>(vec![&case], "result");
+        let generated = ActionSection::generate::<MockActionCodeGen>(vec![&bundle], "result");
 
         assert_tokens!(generated, {
             #[allow(unused_variables)]
@@ -97,9 +123,13 @@ mod tests {
     #[test]
     fn test_generate_3_cases() {
         let cases = vec![MockCase { id: 0 }, MockCase { id: 1 }, MockCase { id: 2 }];
+        let bundles: Vec<_> = cases
+            .into_iter()
+            .map(|c| MockCaseBundle { case: c })
+            .collect();
 
         let generated = ActionSection::generate::<MockActionCodeGen>(
-            cases.iter().map(|c| c as &dyn Case).collect(),
+            bundles.iter().map(|c| c as &dyn CaseBundle).collect(),
             "result",
         );
 

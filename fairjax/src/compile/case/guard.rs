@@ -1,6 +1,6 @@
-use crate::compile::pattern::full::PatternCodeGen;
-use crate::compile::pattern::sub::SubPatternCompiler;
-use crate::parse::{case::Case, context::Context, pattern::Pattern};
+use crate::compile::pattern::{full::PatternCodeGen, sub::SubPatternCompiler};
+use crate::parse::context::Context;
+use crate::traits::{Case, Pattern};
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote_spanned};
 use syn::{Ident, spanned::Spanned};
@@ -95,7 +95,7 @@ impl GuardCompiler {
 mod tests {
     use super::*;
     use crate::compile::pattern::sub::SubPatternCodeGen;
-    use crate::parse::{case::Case, pattern::Pattern, strategy::Strategy, sub_pattern::SubPattern};
+    use crate::traits::{Case, Pattern, SubPattern};
     use proc_macro_utils::assert_tokens;
     use proc_macro2::TokenStream;
     use quote::{ToTokens, format_ident};
@@ -135,9 +135,6 @@ mod tests {
 
     impl<const N: usize> Case for MockCase<N> {
         fn index(&self) -> usize {
-            unimplemented!()
-        }
-        fn strategy(&self) -> Strategy {
             unimplemented!()
         }
         fn pattern(&self) -> &dyn Pattern {

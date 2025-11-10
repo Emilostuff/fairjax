@@ -180,7 +180,6 @@ name = "fairjax"
 version = "0.1.0"
 dependencies = [
  "fairjax_core",
- "once_cell",
  "proc-macro-utils",
  "proc-macro2",
  "quote",

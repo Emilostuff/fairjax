@@ -8,7 +8,6 @@ proc-macro = true
 
 [dependencies]
 fairjax_core = { path = "../fairjax_core" }
-once_cell = "1.21.3"
 proc-macro2 = "1.0.101"
 quote = "1.0.40"
 syn = { version="2.0.106", features=["full"] }

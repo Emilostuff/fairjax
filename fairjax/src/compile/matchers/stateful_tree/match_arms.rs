@@ -1,31 +1,36 @@
-use crate::compile::matchers::stateful_tree::profile::PatternProfile;
 use crate::compile::pattern::sub::SubPatternCodeGen;
+use crate::traits::CaseBundle;
 use proc_macro2::{Span, TokenStream};
 use quote::quote_spanned;
 
 pub trait MatchArmCodeGen {
-    fn generate<S: SubPatternCodeGen>(span: Span, profile: &PatternProfile) -> TokenStream;
+    fn generate<S: SubPatternCodeGen>(span: Span, bundle: &dyn CaseBundle) -> TokenStream;
 }
 
 pub struct MatchArmCompiler;
 
 impl MatchArmCodeGen for MatchArmCompiler {
-    fn generate<S: SubPatternCodeGen>(span: Span, profile: &PatternProfile) -> TokenStream {
-        let match_arms = profile.0.iter().scan(0, |position, stats| {
-            // Create anonymized sub pattern
-            let anonymized_sub_pattern = S::generate(stats.sub_pattern, true);
+    fn generate<S: SubPatternCodeGen>(span: Span, bundle: &dyn CaseBundle) -> TokenStream {
+        let match_arms = bundle
+            .pattern_profile()
+            .0
+            .iter()
+            .scan(0, |position, stats| {
+                // Create anonymized sub pattern
+                let anonymized_sub_pattern =
+                    S::generate(bundle.sub_pattern_at_index(stats.sub_pattern_index), true);
 
-            // Determine which positions in the data structure should be reserved
-            // for this sub-pattern type
-            let start = *position;
-            let end = start + stats.occurrences;
+                // Determine which positions in the data structure should be reserved
+                // for this sub-pattern type
+                let start = *position;
+                let end = start + stats.occurrences;
 
-            // Update folding iterator
-            *position = end;
+                // Update folding iterator
+                *position = end;
 
-            // Assemble code snippets into match arm
-            Some(quote_spanned!(span => #anonymized_sub_pattern => (#start, #end)))
-        });
+                // Assemble code snippets into match arm
+                Some(quote_spanned!(span => #anonymized_sub_pattern => (#start, #end)))
+            });
 
         // Combine, and comma separate match arms
         quote_spanned!(span => #(#match_arms),*,)
@@ -35,16 +40,40 @@ impl MatchArmCodeGen for MatchArmCompiler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::compile::matchers::stateful_tree::profile::{PatternProfile, SubPatternStats};
+    use crate::analyse::profile::MessageGroup;
+    use crate::analyse::profile::PatternProfile;
+    use crate::analyse::strategy::Strategy;
     use crate::compile::pattern::sub::SubPatternCodeGen;
-    use crate::parse::sub_pattern::{SubPattern, SubPatternDefinition};
+    use crate::parse::sub_pattern::SubPatternDefinition;
+    use crate::traits::{Case, SubPattern};
     use proc_macro_utils::assert_tokens;
-    use proc_macro2::TokenStream;
+    use proc_macro2::{Ident, TokenStream};
     use quote::ToTokens;
-    use syn::Ident;
 
     fn ident(input: &str) -> Ident {
         Ident::new(input, proc_macro2::Span::call_site())
+    }
+
+    struct MockCaseBundle {
+        sub_patterns: Vec<MockSubPattern>,
+        profile: PatternProfile,
+    }
+
+    impl CaseBundle for MockCaseBundle {
+        fn case(&self) -> &dyn Case {
+            unimplemented!()
+        }
+        fn strategy(&self) -> &Strategy {
+            unimplemented!()
+        }
+
+        fn pattern_profile(&self) -> &PatternProfile {
+            &self.profile
+        }
+
+        fn sub_pattern_at_index(&self, index: usize) -> &dyn SubPattern {
+            &self.sub_patterns[index]
+        }
     }
 
     struct MockSubPattern(syn::Ident);
@@ -70,15 +99,19 @@ mod tests {
     // Tests
     #[test]
     fn test_single() {
-        let sp = MockSubPattern(ident("A"));
-        let profile = PatternProfile(vec![SubPatternStats {
-            sub_pattern: &sp,
+        let profile = PatternProfile(vec![MessageGroup {
+            sub_pattern_index: 0,
             occurrences: 1,
             positions: vec![0],
         }]);
 
+        let bundle = MockCaseBundle {
+            sub_patterns: vec![MockSubPattern(ident("A"))],
+            profile,
+        };
+
         let result =
-            MatchArmCompiler::generate::<MockSubPatternCodeGen>(Span::call_site(), &profile);
+            MatchArmCompiler::generate::<MockSubPatternCodeGen>(Span::call_site(), &bundle);
 
         assert_tokens!( result, {
             A => (0usize, 1usize),
@@ -88,11 +121,20 @@ mod tests {
     #[test]
     fn test_multiple_complex() {
         // Create mock sub-patterns
-        let sp_a = MockSubPattern(ident("A"));
-        let sp_b = MockSubPattern(ident("B"));
-        let sp_c = MockSubPattern(ident("C"));
-        let sp_d = MockSubPattern(ident("D"));
-        let sp_e = MockSubPattern(ident("E"));
+        let sub_patterns = vec![
+            MockSubPattern(ident("A")),
+            MockSubPattern(ident("B")),
+            MockSubPattern(ident("A")),
+            MockSubPattern(ident("C")),
+            MockSubPattern(ident("B")),
+            MockSubPattern(ident("D")),
+            MockSubPattern(ident("A")),
+            MockSubPattern(ident("C")),
+            MockSubPattern(ident("E")),
+            MockSubPattern(ident("B")),
+            MockSubPattern(ident("D")),
+            MockSubPattern(ident("A")),
+        ];
 
         // Simulate a complex pattern: ["A", "B", "A", "C", "B", "D", "A", "C", "E", "B", "D", "A"]
         // Expected stats:
@@ -101,37 +143,41 @@ mod tests {
         // C: 2 occurrences, positions [3, 7]
         // D: 2 occurrences, positions [5, 10]
         // E: 1 occurrence, position [8]
-        let stats = vec![
-            SubPatternStats {
-                sub_pattern: &sp_a,
+        let profile = PatternProfile(vec![
+            MessageGroup {
+                sub_pattern_index: 0,
                 occurrences: 4,
                 positions: vec![0, 2, 6, 11],
             },
-            SubPatternStats {
-                sub_pattern: &sp_b,
+            MessageGroup {
+                sub_pattern_index: 1,
                 occurrences: 3,
                 positions: vec![1, 4, 9],
             },
-            SubPatternStats {
-                sub_pattern: &sp_c,
+            MessageGroup {
+                sub_pattern_index: 3,
                 occurrences: 2,
                 positions: vec![3, 7],
             },
-            SubPatternStats {
-                sub_pattern: &sp_d,
+            MessageGroup {
+                sub_pattern_index: 5,
                 occurrences: 2,
                 positions: vec![5, 10],
             },
-            SubPatternStats {
-                sub_pattern: &sp_e,
+            MessageGroup {
+                sub_pattern_index: 8,
                 occurrences: 1,
                 positions: vec![8],
             },
-        ];
-        let profile = PatternProfile(stats);
+        ]);
+
+        let bundle = MockCaseBundle {
+            sub_patterns,
+            profile,
+        };
 
         let result =
-            MatchArmCompiler::generate::<MockSubPatternCodeGen>(Span::call_site(), &profile);
+            MatchArmCompiler::generate::<MockSubPatternCodeGen>(Span::call_site(), &bundle);
 
         // The expected match arms, in order, with correct ranges
         assert_tokens!( result, {

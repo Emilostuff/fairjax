@@ -1,7 +1,5 @@
-use crate::{
-    compile::pattern::{full::PatternCodeGen, sub::SubPatternCompiler},
-    parse::case::Case,
-};
+use crate::compile::pattern::{full::PatternCodeGen, sub::SubPatternCompiler};
+use crate::traits::Case;
 use proc_macro2::TokenStream;
 use quote::quote_spanned;
 use syn::Ident;
@@ -33,10 +31,7 @@ impl ActionCodeGen for Action {
 mod tests {
     use super::*;
     use crate::compile::pattern::sub::SubPatternCodeGen;
-    use crate::parse::case::Case;
-    use crate::parse::pattern::Pattern;
-    use crate::parse::strategy::Strategy;
-    use crate::parse::sub_pattern::SubPattern;
+    use crate::traits::{Case, Pattern, SubPattern};
     use proc_macro_utils::assert_tokens;
     use proc_macro2::{Span, TokenStream};
     use quote::{ToTokens, format_ident};
@@ -66,9 +61,6 @@ mod tests {
 
     impl Case for MockCase {
         fn index(&self) -> usize {
-            unimplemented!()
-        }
-        fn strategy(&self) -> Strategy {
             unimplemented!()
         }
         fn pattern(&self) -> &dyn Pattern {

@@ -1,29 +1,6 @@
-use crate::parse::sub_pattern::{SubPattern, SubPatternDefinition};
+use crate::parse::sub_pattern::SubPatternDefinition;
 use proc_macro2::Span;
 use syn::{Pat, Result, spanned::Spanned};
-
-pub trait Pattern {
-    fn sub_patterns(&self) -> Vec<&dyn SubPattern>;
-    fn len(&self) -> usize;
-    fn span(&self) -> Span;
-}
-
-impl Pattern for PatternDefinition {
-    fn sub_patterns(&self) -> Vec<&dyn SubPattern> {
-        self.sub_patterns
-            .iter()
-            .map(|sp| sp as &dyn SubPattern)
-            .collect()
-    }
-
-    fn len(&self) -> usize {
-        self.sub_patterns.len()
-    }
-
-    fn span(&self) -> Span {
-        self.span
-    }
-}
 
 #[derive(Clone)]
 // The pattern of a match arm expression

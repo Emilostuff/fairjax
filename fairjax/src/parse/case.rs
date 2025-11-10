@@ -1,47 +1,11 @@
-use crate::parse::pattern::{Pattern, PatternDefinition};
-use crate::parse::strategy::Strategy;
+use crate::parse::{pattern::PatternDefinition, strategy::InputStrategy};
 use proc_macro2::Span;
 use syn::{Arm, Expr, Result, spanned::Spanned};
-
-pub trait Case {
-    fn index(&self) -> usize;
-    fn strategy(&self) -> Strategy;
-    fn pattern(&self) -> &dyn Pattern;
-    fn guard(&self) -> Option<Expr>;
-    fn body(&self) -> Expr;
-    fn span(&self) -> Span;
-}
-
-impl Case for CaseDefinition {
-    fn index(&self) -> usize {
-        self.index
-    }
-
-    fn strategy(&self) -> Strategy {
-        self.strategy.clone()
-    }
-
-    fn pattern(&self) -> &dyn Pattern {
-        &self.pattern
-    }
-
-    fn guard(&self) -> Option<Expr> {
-        self.guard.clone()
-    }
-
-    fn body(&self) -> Expr {
-        self.body.clone()
-    }
-
-    fn span(&self) -> Span {
-        self.span
-    }
-}
 
 #[derive(Clone)]
 pub struct CaseDefinition {
     pub index: usize,
-    pub strategy: Strategy,
+    pub strategy: InputStrategy,
     pub pattern: PatternDefinition,
     pub guard: Option<Expr>,
     pub body: Expr,
@@ -61,7 +25,7 @@ impl CaseDefinition {
         } = input;
 
         // Check if case arm has a strategy attribute
-        let strategy = Strategy::parse(attrs)?;
+        let strategy = InputStrategy::parse(attrs)?;
 
         // Parse match scrutinee into pattern object
         let pattern = PatternDefinition::parse(pat)?;
@@ -99,7 +63,7 @@ mod tests {
         };
 
         // Define expected result
-        let expected_strategy = Strategy::Auto;
+        let expected_strategy = InputStrategy::Auto;
 
         // Compute actual result
         let result = CaseDefinition::parse(input, 0).unwrap();
@@ -118,7 +82,7 @@ mod tests {
         };
 
         // Define expected result
-        let expected_strategy = Strategy::Auto;
+        let expected_strategy = InputStrategy::Auto;
 
         // Compute actual result
         let result = CaseDefinition::parse(input, 0).unwrap();
@@ -138,7 +102,7 @@ mod tests {
         };
 
         // Define expected result
-        let expected_strategy = Strategy::BruteForce;
+        let expected_strategy = InputStrategy::BruteForce;
 
         // Compute actual result
         let result = CaseDefinition::parse(input, 0).unwrap();
@@ -157,7 +121,7 @@ mod tests {
         };
 
         // Define expected result
-        let expected_strategy = Strategy::Auto;
+        let expected_strategy = InputStrategy::Auto;
 
         // Compute actual result
         let result = CaseDefinition::parse(input, 0).unwrap();
@@ -180,7 +144,7 @@ mod tests {
         };
 
         // Define expected result
-        let expected_strategy = Strategy::Auto;
+        let expected_strategy = InputStrategy::Auto;
 
         // Compute actual result
         let result = CaseDefinition::parse(input, 0).unwrap();

@@ -1,17 +1,13 @@
 pub mod mappings;
 pub mod match_arms;
-pub mod profile;
 
+use crate::compile::case::{accept::AcceptCodeGen, guard::GuardCodeGen};
+use crate::compile::matchers::stateful_tree::mappings::MappingCodeGen;
+use crate::compile::pattern::{full::PatternCompiler, sub::SubPatternCompiler};
+use crate::parse::context::Context;
+use crate::traits::CaseBundle;
 use match_arms::MatchArmCodeGen;
 use proc_macro2::{Span, TokenStream};
-
-use crate::compile::case::accept::AcceptCodeGen;
-use crate::compile::case::guard::GuardCodeGen;
-use crate::compile::matchers::stateful_tree::mappings::MappingCodeGen;
-use crate::compile::pattern::full::PatternCompiler;
-use crate::compile::pattern::sub::SubPatternCompiler;
-use crate::parse::{case::Case, context::Context};
-use profile::PatternProfile;
 use quote::quote_spanned;
 use syn::{Ident, Path};
 
@@ -19,14 +15,12 @@ pub struct StatefulTreeCompiler;
 
 impl StatefulTreeCompiler {
     pub fn generate<G: GuardCodeGen, A: AcceptCodeGen, M: MatchArmCodeGen, MP: MappingCodeGen>(
-        case: &dyn Case,
+        bundle: &dyn CaseBundle,
         context: Context,
         output_ident: &Ident,
     ) -> TokenStream {
+        let case = bundle.case();
         let span = case.span();
-
-        // Profile pattern
-        let profile = PatternProfile::new(case.pattern());
 
         // Retrieve values for code block
         let message_type = &context.message_type;
@@ -45,7 +39,7 @@ impl StatefulTreeCompiler {
         // Mappings declaration code
         let mappings_name = format!("FAIRJAX_ST_MAPPINGS_{}", case.index());
         let mappings_ident = Ident::new(&mappings_name, case.span());
-        let mappings_code = MP::generate(span, &profile, &mappings_ident);
+        let mappings_code = MP::generate(span, bundle, &mappings_ident);
 
         // Struct declaration code
         let struct_ident = Ident::new(
@@ -55,7 +49,7 @@ impl StatefulTreeCompiler {
         let struct_code = Self::gen_struct_declaration_code(span, &struct_ident, pattern_size);
 
         // Struct methods declarataion code
-        let extent_method_code = Self::gen_extend_code::<M>(span, &profile, &message_type);
+        let extent_method_code = Self::gen_extend_code::<M>(span, bundle, &message_type);
         let is_complete_code = Self::gen_is_complete_code(span, pattern_size);
         let message_ids_method_code = Self::gen_message_ids_code(span, pattern_size);
 
@@ -99,11 +93,11 @@ impl StatefulTreeCompiler {
 
     fn gen_extend_code<M: MatchArmCodeGen>(
         span: Span,
-        profile: &PatternProfile,
+        bundle: &dyn CaseBundle,
         message_type: &Path,
     ) -> TokenStream {
         // Generate match arm code
-        let match_arms = M::generate::<SubPatternCompiler>(span, profile);
+        let match_arms = M::generate::<SubPatternCompiler>(span, bundle);
 
         quote_spanned! { span =>
             fn extend(&self, message: &#message_type, id: fairjax_core::MessageId) -> Option<Self> {

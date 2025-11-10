@@ -1,10 +1,11 @@
-use crate::parse::sub_pattern::{SubPattern, SubPatternDefinition};
+use crate::parse::sub_pattern::SubPatternDefinition;
+use crate::traits::SubPattern;
 use proc_macro2::TokenStream;
 use quote::quote_spanned;
 use syn::{Pat, PatRest, punctuated::Punctuated, spanned::Spanned, token::DotDot};
 
 pub trait SubPatternCodeGen {
-    fn generate(sub_pattern: &dyn SubPattern, anonymous: bool) -> TokenStream;
+    fn generate<'a>(sub_pattern: &'a dyn SubPattern, anonymous: bool) -> TokenStream;
 }
 
 pub struct SubPatternCompiler;

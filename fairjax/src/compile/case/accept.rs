@@ -1,5 +1,6 @@
 use crate::compile::pattern::sub::SubPatternCodeGen;
-use crate::parse::{case::Case, context::Context};
+use crate::parse::context::Context;
+use crate::traits::Case;
 use proc_macro2::TokenStream;
 use quote::quote_spanned;
 use syn::Ident;
