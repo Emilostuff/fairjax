@@ -33,13 +33,14 @@ pub type GuardFn<const C: usize, M> = fn(&[&M; C], &Mapping<C>) -> bool;
 pub type AcceptFn<M> = fn(&M) -> bool;
 
 /// Key function that extracts a composite key (based on partition variable) from a message
-pub type KeyFn<M> = fn(&M) -> AnyKeyBox;
+pub type KeyFn<M> = fn(&M) -> Option<AnyKeyBox>;
 
 /// Top interface for interacting with a case on messages of type M.
 /// K is the maximum pattern size across all cases.
 pub trait CaseHandler<M> {
     fn consume(&mut self, id: MessageId, store: &Store<M>) -> Option<MatchedIds>;
     fn remove(&mut self, messages: &MatchedIds, store: &Store<M>);
+    fn is_empty(&self) -> bool;
 }
 
 #[cfg(test)]

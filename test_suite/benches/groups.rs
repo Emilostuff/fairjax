@@ -4,7 +4,7 @@ use rand::{Rng, SeedableRng};
 use std::{hint::black_box, ops::Range, time::Duration};
 use test_suite::scenarios::groups::{Msg, generate_random_messages};
 
-test_suite::declare_groups!(run_groups, StatefulTree);
+test_suite::partitions_declare_groups!(run_groups);
 
 const SEED: u64 = 123;
 const N_CASES: usize = 200;

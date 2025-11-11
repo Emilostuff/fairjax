@@ -14,7 +14,7 @@ fn run(n_runs: usize) {
 
 #[test]
 /// Mini test to be run always
-pub fn test_permutations_mini() {
+pub fn mini() {
     let runs = 20;
     run(runs);
 }
@@ -22,7 +22,7 @@ pub fn test_permutations_mini() {
 #[test]
 #[ignore]
 /// Extensive test to be run on-demand
-pub fn test_permutations_extensive() {
+pub fn extensive() {
     let runs = 6000;
     run(runs);
 }

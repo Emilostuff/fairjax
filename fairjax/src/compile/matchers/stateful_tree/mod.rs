@@ -1,9 +1,9 @@
 pub mod mappings;
 pub mod match_arms;
 
-use crate::compile::case::{accept::AcceptCodeGen, guard::GuardCodeGen};
+use crate::compile::case::accept::AcceptCodeGen;
 use crate::compile::matchers::stateful_tree::mappings::MappingCodeGen;
-use crate::compile::pattern::{full::PatternCompiler, sub::SubPatternCompiler};
+use crate::compile::pattern::sub::SubPatternCompiler;
 use crate::parse::context::Context;
 use crate::traits::CaseBundle;
 use match_arms::MatchArmCodeGen;
@@ -14,10 +14,11 @@ use syn::{Ident, Path};
 pub struct StatefulTreeCompiler;
 
 impl StatefulTreeCompiler {
-    pub fn generate<G: GuardCodeGen, A: AcceptCodeGen, M: MatchArmCodeGen, MP: MappingCodeGen>(
+    pub fn generate<A: AcceptCodeGen, M: MatchArmCodeGen, MP: MappingCodeGen>(
         bundle: &dyn CaseBundle,
         context: Context,
         factory_ident: &Ident,
+        guard_fn_ident: &Ident,
     ) -> TokenStream {
         let case = bundle.case();
         let span = case.span();
@@ -26,18 +27,13 @@ impl StatefulTreeCompiler {
         let message_type = &context.message_type;
         let pattern_size = case.pattern().len();
 
-        // Guard declaration code
-        let guard_fn_name = format!("fairjax_st_guard_function_{}", case.index());
-        let guard_fn_ident = Ident::new(&guard_fn_name, case.span());
-        let guard_code = G::generate::<PatternCompiler>(case, &context, &guard_fn_name);
-
         // Accept declaration code
-        let accept_fn_name = format!("fairjax_st_accept_function_{}", case.index());
+        let accept_fn_name = format!("fairjax_accept_function_{}", case.index());
         let accept_fn_ident = Ident::new(&accept_fn_name, case.span());
         let accept_code = A::generate::<SubPatternCompiler>(case, &context, &accept_fn_name);
 
         // Mappings declaration code
-        let mappings_name = format!("FAIRJAX_ST_MAPPINGS_{}", case.index());
+        let mappings_name = format!("FAIRJAX_MAPPINGS_{}", case.index());
         let mappings_ident = Ident::new(&mappings_name, case.span());
         let mappings_code = MP::generate(span, bundle, &mappings_ident);
 
@@ -55,8 +51,6 @@ impl StatefulTreeCompiler {
 
         // Assemble
         quote_spanned! { span =>
-            #guard_code
-
             #accept_code
 
             #mappings_code
@@ -71,7 +65,17 @@ impl StatefulTreeCompiler {
                 #message_ids_method_code
             }
 
-            let #factory_ident = || Box::new(fairjax_core::strategies::stateful_tree::StatefulTreeMatcher::<#pattern_size, #struct_ident, #message_type>::new(#guard_fn_ident, #accept_fn_ident, &#mappings_ident)) as Box<dyn fairjax_core::CaseHandler<#message_type>>;
+            let #factory_ident = || {
+                Box::new(
+                    fairjax_core::strategies::stateful_tree::StatefulTreeMatcher::<
+                        #pattern_size,
+                        #struct_ident,
+                        #message_type
+                    >::new(
+                        #guard_fn_ident, #accept_fn_ident, &#mappings_ident
+                    )
+                ) as Box<dyn fairjax_core::CaseHandler<#message_type>>
+            };
         }
     }
 }

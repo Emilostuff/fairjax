@@ -68,4 +68,8 @@ impl<const C: usize, P: PartialMatch<C, M> + Default, M> Node<C, P, M> {
             child.remove(messages);
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.children.is_empty()
+    }
 }

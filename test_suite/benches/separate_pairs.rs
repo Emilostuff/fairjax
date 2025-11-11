@@ -4,7 +4,7 @@ use rand::{Rng, SeedableRng};
 use std::{hint::black_box, ops::Range, time::Duration};
 use test_suite::scenarios::separate_pairs::{Msg, generate_random_messages};
 
-test_suite::declare_separate_pairs!(run_separate_pairs, StatefulTree);
+test_suite::partitions_declare_separate_pairs!(run_separate_pairs);
 
 const SEED: u64 = 123;
 const N_CASES: usize = 200;

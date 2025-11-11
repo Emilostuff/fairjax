@@ -63,6 +63,10 @@ impl<const C: usize, M> CaseHandler<M> for BruteForceMatcher<C, M> {
     fn remove(&mut self, messages: &MatchedIds, _store: &Store<M>) {
         self.message_ids.retain(|id| !messages.contains(id));
     }
+
+    fn is_empty(&self) -> bool {
+        self.message_ids.is_empty()
+    }
 }
 
 #[cfg(test)]

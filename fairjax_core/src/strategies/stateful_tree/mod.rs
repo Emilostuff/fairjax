@@ -59,4 +59,8 @@ impl<const C: usize, P: PartialMatch<C, M>, M> CaseHandler<M> for StatefulTreeMa
     fn remove(&mut self, messages: &MatchedIds, _store: &Store<M>) {
         self.tree.remove(messages)
     }
+
+    fn is_empty(&self) -> bool {
+        self.tree.is_empty()
+    }
 }

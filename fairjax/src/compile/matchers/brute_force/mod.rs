@@ -1,4 +1,3 @@
-use crate::compile::{case::guard::GuardCodeGen, pattern::full::PatternCompiler};
 use crate::parse::context::Context;
 use crate::traits::CaseBundle;
 use proc_macro2::{Ident, TokenStream};
@@ -8,17 +7,13 @@ pub struct BruteForceCompiler;
 
 impl BruteForceCompiler {
     /// Generate declaration code for a BruteForceMatcher
-    pub fn generate<G: GuardCodeGen>(
+    pub fn generate(
         bundle: &dyn CaseBundle,
         context: Context,
         factory_ident: &Ident,
+        guard_fn_ident: &Ident,
     ) -> TokenStream {
         let case = bundle.case();
-
-        // Generate guard
-        let guard_fn_name = format!("fairjax_bf_guard_function_{}", case.index());
-        let guard_fn_ident = Ident::new(&guard_fn_name, case.span());
-        let guard_code = G::generate::<PatternCompiler>(case, &context, &guard_fn_name);
 
         // Retrieve values for code block
         let message_type = context.message_type;
@@ -26,9 +21,14 @@ impl BruteForceCompiler {
 
         // Assemble code snippets
         quote_spanned! {case.span() =>
-            #guard_code
-
-            let #factory_ident = || Box::new(fairjax_core::strategies::brute_force::BruteForceMatcher::<#pattern_size, #message_type>::new(#guard_fn_ident)) as Box<dyn fairjax_core::CaseHandler<#message_type>>;
+            let #factory_ident = || {
+                Box::new(
+                    fairjax_core::strategies::brute_force::BruteForceMatcher::<
+                        #pattern_size,
+                        #message_type
+                    >::new(#guard_fn_ident)
+                ) as Box<dyn fairjax_core::CaseHandler<#message_type>>
+            };
         }
     }
 }

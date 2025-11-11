@@ -14,7 +14,7 @@ fn run(n_runs: usize, size: usize) {
 
 #[test]
 /// Mini test to be run always
-pub fn test_sums_mini() {
+pub fn mini() {
     let runs = 100;
     let size = 50;
     run(runs, size);
@@ -23,7 +23,7 @@ pub fn test_sums_mini() {
 #[test]
 #[ignore]
 /// Extensive test to be run on-demand
-pub fn test_sums_extensive() {
+pub fn extensive() {
     let runs = 6000;
     let size = 200;
     run(runs, size);

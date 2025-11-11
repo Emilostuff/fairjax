@@ -37,6 +37,35 @@ macro_rules! declare_separate_pairs {
     };
 }
 
+#[macro_export]
+macro_rules! partitions_declare_separate_pairs {
+    ($fn_name:ident) => {
+        fn $fn_name(messages: &[Msg]) -> Vec<test_suite::MatchTrace<Msg>> {
+            let mut mailbox: fairjax_core::MailBox<Msg> = fairjax_core::MailBox::new();
+            let mut output = vec![];
+
+            use Msg::*;
+            for msg in messages {
+                fairjax::fairjax!(match msg.clone() >> [mailbox, Msg] {
+                    #[Partitions]
+                    (A(0, x), B(0, x)) =>
+                        output.push(test_suite::MatchTrace::new(0, vec![A(0, x), B(0, x)])),
+                    #[Partitions]
+                    (A(1, x), B(1, x)) =>
+                        output.push(test_suite::MatchTrace::new(0, vec![A(1, x), B(1, x)])),
+                    #[Partitions]
+                    (A(2, x), B(2, x)) =>
+                        output.push(test_suite::MatchTrace::new(0, vec![A(2, x), B(2, x)])),
+                    #[Partitions]
+                    (A(3, x), B(3, x)) =>
+                        output.push(test_suite::MatchTrace::new(0, vec![A(3, x), B(3, x)])),
+                });
+            }
+            output
+        }
+    };
+}
+
 pub fn generate_random_messages(size: usize, seed: Option<u64>) -> Vec<Msg> {
     let mut rng = crate::get_rng(seed);
     let mut messages: Vec<_> = (0..size)

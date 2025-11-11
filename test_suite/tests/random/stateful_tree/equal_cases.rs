@@ -14,7 +14,7 @@ fn run(n_runs: usize, size: usize) {
 
 #[test]
 /// Mini test to be run always
-pub fn test_equal_cases_mini() {
+pub fn mini() {
     let runs = 10;
     let size = 5;
     run(runs, size);
@@ -23,7 +23,7 @@ pub fn test_equal_cases_mini() {
 #[test]
 #[ignore]
 /// Extensive test to be run on-demand
-pub fn test_equal_cases_extensive() {
+pub fn extensive() {
     let runs = 400;
     let size = 20;
     run(runs, size);

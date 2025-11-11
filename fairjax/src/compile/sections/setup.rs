@@ -16,7 +16,7 @@ impl SetupSectionCodeGen for SetupSection {
         let matcher_factories: Vec<_> = def
             .cases()
             .iter()
-            .map(|cb| syn::Ident::new(&format!("matcher{}", cb.case().index()), Span::call_site()))
+            .map(|cb| syn::Ident::new(&format!("matcher{}", cb.case().index()), cb.case().span()))
             .collect();
 
         let setups = matcher_factories

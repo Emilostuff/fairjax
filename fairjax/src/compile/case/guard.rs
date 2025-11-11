@@ -9,7 +9,7 @@ pub trait GuardCodeGen {
     fn generate<'a, P: PatternCodeGen>(
         case: &dyn Case,
         context: &Context,
-        fn_name: &'a str,
+        fn_ident: Ident,
     ) -> TokenStream;
 }
 
@@ -19,7 +19,7 @@ impl GuardCodeGen for GuardCompiler {
     fn generate<'a, P: PatternCodeGen>(
         case: &dyn Case,
         context: &Context,
-        fn_name: &'a str,
+        mut fn_ident: Ident,
     ) -> TokenStream {
         let span = match case.guard() {
             Some(guard) => guard.span(),
@@ -27,7 +27,7 @@ impl GuardCodeGen for GuardCompiler {
         };
 
         // Construct guard function identifier
-        let fn_ident = Ident::new(fn_name, span);
+        fn_ident.set_span(span);
 
         // Define standardized function parameter names
         let messages_param_ident = Ident::new("messages", span);
@@ -225,8 +225,11 @@ mod tests {
     fn test_guardcompiler_single_pattern_no_guard() {
         let case = MockCase::<1>::new(None);
 
-        let generated =
-            GuardCompiler::generate::<MockPatternCodeGen>(&case, &context(), "guard_fn");
+        let generated = GuardCompiler::generate::<MockPatternCodeGen>(
+            &case,
+            &context(),
+            format_ident!("guard_fn"),
+        );
 
         assert_tokens!(generated, {
             fn guard_fn(
@@ -247,8 +250,11 @@ mod tests {
         let guard_expr: syn::Expr = parse_quote!(a == 1 && b < 10);
         let case = MockCase::<4>::new(Some(guard_expr));
 
-        let generated =
-            GuardCompiler::generate::<MockPatternCodeGen>(&case, &context(), "guard_fn_large");
+        let generated = GuardCompiler::generate::<MockPatternCodeGen>(
+            &case,
+            &context(),
+            format_ident!("guard_fn_large"),
+        );
 
         assert_tokens!(generated, {
             fn guard_fn_large(

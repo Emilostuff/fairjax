@@ -93,6 +93,10 @@ mod tests {
             }
         }
         fn remove(&mut self, _messages: &MatchedIds, _store: &Store<TestMessage>) {}
+
+        fn is_empty(&self) -> bool {
+            unimplemented!();
+        }
     }
 
     struct MockCase1;
@@ -105,6 +109,10 @@ mod tests {
             }
         }
         fn remove(&mut self, _messages: &MatchedIds, _store: &Store<TestMessage>) {}
+
+        fn is_empty(&self) -> bool {
+            unimplemented!();
+        }
     }
 
     #[test]
