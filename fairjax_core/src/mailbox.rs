@@ -73,6 +73,17 @@ impl<M> MailBox<M> {
     pub fn unmatched_messages(&self) -> Vec<MessageId> {
         self.store.keys().cloned().collect()
     }
+
+    pub fn extract(&mut self) -> Vec<M> {
+        // Reset case handlers
+        let all_ids = MatchedIds(self.unmatched_messages());
+        self.remove_message_ids_from_cases(&all_ids);
+
+        // take messages out of store
+        let mut messages: Vec<(MessageId, M)> = self.store.drain().collect();
+        messages.sort_by_key(|e| e.0);
+        messages.into_iter().map(|(_, v)| v).collect()
+    }
 }
 
 #[cfg(test)]
