@@ -1,3 +1,5 @@
+use fairjax::*;
+
 #[derive(Clone, Debug, Copy, PartialEq)]
 pub enum Msg {
     A(usize),
@@ -11,7 +13,7 @@ fn main() {
 
     let messages = vec![A(1), B(2), A(3), B(3), A(2), B(1)];
     for msg in messages {
-        fairjax::fairjax!(match msg.clone() >> [mailbox, Msg] {
+        fairjax!(match msg >> [mailbox, Msg] {
             (A(x), B(y)) if x == y => {
                 println!("Matched A({}) and B({})", x, y);
             }
