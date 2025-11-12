@@ -71,7 +71,7 @@ use Msg::*;
 use ResourceType::*;
 
 fn main() {
-    let mut mailbox = MailBox::<Msg>::new();
+    let mut mailbox = MailBox::<Msg>::default();
     let messages = vec![
         Msg::job(1, Render, 12),
         Msg::job(2, Infer, 100),

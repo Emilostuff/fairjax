@@ -14,7 +14,7 @@ use MyMsg::*;
 
 #[allow(unreachable_patterns)]
 fn run_test(message: &MyMsg) -> usize {
-    let mut mailbox: MailBox<MyMsg> = MailBox::new();
+    let mut mailbox: MailBox<MyMsg> = MailBox::default();
     let mut output = usize::MAX;
 
     fairjax!(match message.clone() >> [mailbox, MyMsg] {

@@ -42,4 +42,4 @@ bench benchname="":
     fi
 
 example name:
-    cargo r -p fairjax --example {{name}}
+    cargo r -p examples --example {{name}}

@@ -11,7 +11,7 @@ enum MyMsg {
 use MyMsg::*;
 
 fn run_test(messages: &[MyMsg]) -> Vec<MatchTrace<MyMsg>> {
-    let mut mailbox: MailBox<MyMsg> = MailBox::new();
+    let mut mailbox: MailBox<MyMsg> = MailBox::default();
     let mut output = vec![];
 
     for msg in messages.to_owned() {

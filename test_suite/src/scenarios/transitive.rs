@@ -11,7 +11,7 @@ use Msg::*;
 macro_rules! declare_transitive {
     ($fn_name:ident, $strategy:ident) => {
         fn $fn_name(messages: &[Msg]) -> Vec<test_suite::MatchTrace<Msg>> {
-            let mut mailbox: fairjax_core::MailBox<Msg> = fairjax_core::MailBox::new();
+            let mut mailbox: fairjax_core::MailBox<Msg> = fairjax_core::MailBox::default();
             let mut output = vec![];
 
             use Msg::*;

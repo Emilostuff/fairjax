@@ -8,7 +8,7 @@ pub enum Msg {
 use Msg::*;
 
 fn main() {
-    let mut mailbox: fairjax_core::MailBox<Msg> = fairjax_core::MailBox::new();
+    let mut mailbox: fairjax_core::MailBox<Msg> = fairjax_core::MailBox::default();
 
     let messages = vec![A(1), B(2), A(3), B(3), A(2), B(1)];
     for msg in messages {

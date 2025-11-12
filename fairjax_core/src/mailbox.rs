@@ -8,8 +8,8 @@ pub struct MailBox<M> {
     cases: Vec<Box<dyn CaseHandler<M>>>,
 }
 
-impl<M> MailBox<M> {
-    pub fn new() -> Self {
+impl<M> Default for MailBox<M> {
+    fn default() -> Self {
         MailBox {
             store: HashMap::new(),
             init: false,
@@ -17,7 +17,9 @@ impl<M> MailBox<M> {
             cases: Vec::new(),
         }
     }
+}
 
+impl<M> MailBox<M> {
     pub fn is_initialized(&self) -> bool {
         self.init
     }
@@ -118,7 +120,7 @@ mod tests {
     #[test]
     fn test_mailbox_init() {
         // Init mailbox
-        let mut mailbox = MailBox::<TestMessage>::new();
+        let mut mailbox = MailBox::<TestMessage>::default();
         assert!(!mailbox.is_initialized());
         assert!(!mailbox.is_modified());
 
@@ -135,7 +137,7 @@ mod tests {
     #[test]
     fn test_mailbox_process() {
         // Init mailbox with two mock cases
-        let mut mailbox = MailBox::<TestMessage>::new();
+        let mut mailbox = MailBox::<TestMessage>::default();
         mailbox.add_case(Box::new(MockCase0));
         mailbox.add_case(Box::new(MockCase1));
         mailbox.init();
