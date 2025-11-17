@@ -259,6 +259,8 @@ dependencies = [
  "actix",
  "fairjax",
  "fairjax_core",
+ "rand",
+ "tokio",
 ]
 
 [[package]]

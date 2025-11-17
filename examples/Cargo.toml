@@ -7,3 +7,5 @@ edition = "2024"
 fairjax_core = { path = "../fairjax_core" }
 fairjax = { path = "../fairjax" }
 actix = "0.13.5"
+tokio = "1.48.0"
+rand = "0.9.2"

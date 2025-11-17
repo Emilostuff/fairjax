@@ -40,7 +40,7 @@ impl Handler<Event> for MyActor {
 #[actix::main]
 async fn main() {
     // Init and start new actor
-    let addr = MyActor::default().start();
+    let addr = MyActor::start_default();
 
     // Send messages and process response
     for event in [Event::A(1), Event::A(2), Event::A(3), Event::B(1)] {
