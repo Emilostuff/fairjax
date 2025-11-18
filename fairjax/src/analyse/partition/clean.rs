@@ -7,10 +7,7 @@ pub struct SubPatternCleaner;
 
 impl SubPatternCleaner {
     /// Entry point: cleans a sub-pattern by removing partition_var occurrences.
-    pub fn clean(
-        sub_pattern: SubPatternDefinition,
-        partition_vars: &Vec<String>,
-    ) -> SubPatternDefinition {
+    pub fn clean(sub_pattern: &mut SubPatternDefinition, partition_vars: &Vec<String>) {
         // We do not allow cleaning of Idents on Sub-Pattern level, as they turn into Wildcards
         if matches!(sub_pattern, SubPatternDefinition::Ident(_)) {
             unreachable!(
@@ -20,12 +17,12 @@ impl SubPatternCleaner {
         }
 
         // Otherwise clean Sub-Pattern
-        match Self::clean_rec(sub_pattern.to_pattern(), partition_vars) {
+        *sub_pattern = match Self::clean_rec(sub_pattern.to_pattern(), partition_vars) {
             Pat::Path(path) => SubPatternDefinition::Path(path),
             Pat::TupleStruct(tuple_struct) => SubPatternDefinition::TupleStruct(tuple_struct),
             Pat::Struct(struct_pat) => SubPatternDefinition::Struct(struct_pat),
             _ => unreachable!(),
-        }
+        };
     }
 
     /// Recursively cleans patterns, replacing partition_var with a wildcard.
@@ -333,22 +330,25 @@ mod tests {
     #[should_panic]
     fn test_clean_ident() {
         // Define input pattern
-        let sub_pattern = SubPatternDefinition::parse(parse_quote! { id }).unwrap();
+        let mut sub_pattern = SubPatternDefinition::parse(parse_quote! { id }).unwrap();
         let partition_vars = vec!["id".to_string()];
 
         // Clean pattern - should panic as we don't allow cleaning standalone Idents
-        SubPatternCleaner::clean(sub_pattern, &partition_vars);
+        SubPatternCleaner::clean(&mut sub_pattern, &partition_vars);
     }
 
     #[test]
     fn test_clean_sub_pattern() {
         // Define input pattern
-        let sub_pattern = SubPatternDefinition::parse(parse_quote! { A(id, x, y, id2) }).unwrap();
+        let mut sub_pattern =
+            SubPatternDefinition::parse(parse_quote! { A(id, x, y, id2) }).unwrap();
         let partition_vars = vec!["id".to_string(), "id2".to_string()];
 
         // Clean pattern - should panic as we don't allow cleaning standalone Idents
-        let result = SubPatternCleaner::clean(sub_pattern, &partition_vars);
+        SubPatternCleaner::clean(&mut sub_pattern, &partition_vars);
 
-        assert_tokens!(result.to_pattern().to_token_stream(), { A(_, x, y, _) });
+        assert_tokens!(sub_pattern.to_pattern().to_token_stream(), {
+            A(_, x, y, _)
+        });
     }
 }

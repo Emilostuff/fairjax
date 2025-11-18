@@ -1,5 +1,5 @@
-use crate::analyse::profile::PatternProfile;
 use crate::analyse::strategy::Strategy;
+use crate::analyse::{partition::Partitioning, profile::PatternProfile};
 use crate::parse::context::Context;
 use crate::parse::pattern::PatternDefinition;
 use crate::parse::sub_pattern::SubPatternDefinition;
@@ -24,6 +24,7 @@ impl Definition for crate::analyse::definition::JoinDefinition {
 pub trait CaseBundle {
     fn case(&self) -> &dyn Case;
     fn strategy(&self) -> &Strategy;
+    fn partitioning(&self) -> &Option<Partitioning>;
     fn pattern_profile(&self) -> &PatternProfile;
     fn sub_pattern_at_index(&self, index: usize) -> &dyn SubPattern;
 }
@@ -35,6 +36,10 @@ impl CaseBundle for crate::analyse::bundle::CaseBundleDefinition {
 
     fn strategy(&self) -> &Strategy {
         &self.strategy
+    }
+
+    fn partitioning(&self) -> &Option<Partitioning> {
+        &self.partitioning
     }
 
     fn pattern_profile(&self) -> &PatternProfile {
@@ -56,6 +61,7 @@ pub trait Case {
     fn guard(&self) -> Option<Expr>;
     fn body(&self) -> Expr;
     fn span(&self) -> Span;
+    fn ident_with_case_id(&self, name: &'static str) -> Ident;
 }
 
 impl Case for crate::parse::case::CaseDefinition {
@@ -77,6 +83,9 @@ impl Case for crate::parse::case::CaseDefinition {
 
     fn span(&self) -> Span {
         self.span
+    }
+    fn ident_with_case_id(&self, name: &'static str) -> Ident {
+        Ident::new(&format!("{}{}", name, self.index()), self.span())
     }
 }
 

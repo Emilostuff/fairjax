@@ -5,7 +5,6 @@ pub enum InputStrategy {
     Auto,
     StatefulTree,
     BruteForce,
-    Partitions,
 }
 
 impl InputStrategy {
@@ -20,7 +19,6 @@ impl InputStrategy {
                         Some(ident) if ident == "Auto" => Ok(InputStrategy::Auto),
                         Some(ident) if ident == "StatefulTree" => Ok(InputStrategy::StatefulTree),
                         Some(ident) if ident == "BruteForce" => Ok(InputStrategy::BruteForce),
-                        Some(ident) if ident == "Partitions" => Ok(InputStrategy::Partitions),
                         _ => Err(syn::Error::new_spanned(
                             strategy_ident,
                             "Invalid strategy name",
@@ -79,13 +77,6 @@ mod tests {
         let attrs = vec![attr_from_ident("BruteForce")];
         let result = InputStrategy::parse(attrs).unwrap();
         assert_eq!(result, InputStrategy::BruteForce);
-    }
-
-    #[test]
-    fn test_parse_partitions() {
-        let attrs = vec![attr_from_ident("Partitions")];
-        let result = InputStrategy::parse(attrs).unwrap();
-        assert_eq!(result, InputStrategy::Partitions);
     }
 
     #[test]

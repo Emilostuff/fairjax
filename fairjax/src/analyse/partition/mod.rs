@@ -6,16 +6,17 @@ use crate::analyse::partition::{
     clean::SubPatternCleaner, counts::IdentCounts, var::PartitionVars,
 };
 use crate::parse::case::CaseDefinition;
+use crate::parse::pattern::PatternDefinition;
 use crate::traits::Pattern;
 use syn::Result;
 
 pub struct Partitioning {
     pub vars: Vec<String>,
-    pub clean_case: CaseDefinition,
+    pub pattern: PatternDefinition,
 }
 
 impl Partitioning {
-    pub fn analyse(case: &CaseDefinition) -> Result<Option<Self>> {
+    pub fn analyse(case: &mut CaseDefinition) -> Result<Option<Self>> {
         // If pattern contains a single message, partitioning will be irrelevant
         if case.pattern.len() < 2 {
             return Ok(None);
@@ -27,27 +28,26 @@ impl Partitioning {
         // Handle result
         match PartitionVars::identify(counts, case.pattern.len())? {
             vars if !vars.is_empty() => {
-                let clean_case = Self::clean_case(case, &vars);
-                Ok(Some(Self { vars, clean_case }))
+                let output = Self {
+                    vars: vars.clone(),
+                    pattern: case.pattern.clone(),
+                };
+                Self::clean_case(case, &vars);
+                Ok(Some(output))
             }
+
             _ => Ok(None),
         }
     }
 
-    fn clean_case(case: &CaseDefinition, partition_vars: &Vec<String>) -> CaseDefinition {
-        let mut clean_case = case.clone();
-
+    fn clean_case(case: &mut CaseDefinition, partition_vars: &Vec<String>) {
         // Clean sub-patterns, but skip first sub-pattern to keep idents in scope for body and guard code
-        let (first, rest) = clean_case.pattern.sub_patterns.split_at(1);
-
-        let cleaned = rest
-            .iter()
-            .map(|sp| SubPatternCleaner::clean(sp.clone(), partition_vars));
-
-        // Collect into original sub-patterns and return
-        clean_case.pattern.sub_patterns = first.iter().cloned().chain(cleaned).collect::<Vec<_>>();
-
-        clean_case
+        case.pattern
+            .sub_patterns
+            .split_at_mut(1)
+            .1
+            .iter_mut()
+            .for_each(|sp| SubPatternCleaner::clean(sp, partition_vars));
     }
 }
 
@@ -66,13 +66,13 @@ mod tests {
         let input: Arm = parse_quote! {
             (A(x), B(x), C(x), D(x)) => ()
         };
-        let case = CaseDefinition::parse(input, 0).unwrap();
+        let mut case = CaseDefinition::parse(input, 0).unwrap();
 
         // Run clean case
-        let result = Partitioning::clean_case(&case, &vec![]);
+        Partitioning::clean_case(&mut case, &vec![]);
 
         // Extract and verify results
-        let result_idents = result
+        let result_idents = case
             .pattern
             .sub_patterns
             .iter()
@@ -89,14 +89,13 @@ mod tests {
             (A(x), B(x)) => ()
         };
 
-        let case = CaseDefinition::parse(input, 0).unwrap();
+        let mut case = CaseDefinition::parse(input, 0).unwrap();
 
         // Analyze input
-        let result = Partitioning::analyse(&case).unwrap().unwrap();
+        let result = Partitioning::analyse(&mut case).unwrap().unwrap();
 
         // Extract and verify results
-        let sub_patterns = result
-            .clean_case
+        let sub_patterns = case
             .pattern
             .sub_patterns
             .iter()
@@ -115,10 +114,10 @@ mod tests {
         let input: Arm = parse_quote! {
             (A { x: (_, id), .. }, B(_, id), C { id } ) => ()
         };
-        let case = CaseDefinition::parse(input, 0).unwrap();
+        let mut case = CaseDefinition::parse(input, 0).unwrap();
 
         // Analyze input
-        let result = Partitioning::analyse(&case).unwrap().unwrap();
+        let result = Partitioning::analyse(&mut case).unwrap().unwrap();
 
         // Verify results
         assert_eq!(vec!["id"], result.vars);
@@ -130,10 +129,10 @@ mod tests {
         let input: Arm = parse_quote! {
             (A { x: (_, id), .. }, B(_, id2), C { id3 } ) => ()
         };
-        let case = CaseDefinition::parse(input, 0).unwrap();
+        let mut case = CaseDefinition::parse(input, 0).unwrap();
 
         // Parse input and ensure no partition vars are found
-        assert!(Partitioning::analyse(&case).unwrap().is_none());
+        assert!(Partitioning::analyse(&mut case).unwrap().is_none());
     }
 
     #[test]
@@ -142,14 +141,13 @@ mod tests {
         let input: Arm = parse_quote! {
             (A { x: (_, id), data }, B(id, data), C { id, data } ) => ()
         };
-        let case = CaseDefinition::parse(input, 0).unwrap();
+        let mut case = CaseDefinition::parse(input, 0).unwrap();
 
         // Analyze input
-        let result = Partitioning::analyse(&case).unwrap().unwrap();
+        let result = Partitioning::analyse(&mut case).unwrap().unwrap();
 
         // Extract and verify results
-        let sub_patterns = result
-            .clean_case
+        let sub_patterns = case
             .pattern
             .sub_patterns
             .iter()
@@ -171,10 +169,10 @@ mod tests {
         let input: Arm = parse_quote! {
             (A { x: (_, id), .. }, B(id, id), C { id } ) => ()
         };
-        let case = CaseDefinition::parse(input, 0).unwrap();
+        let mut case = CaseDefinition::parse(input, 0).unwrap();
 
         // Try to analyse
-        Partitioning::analyse(&case).unwrap();
+        Partitioning::analyse(&mut case).unwrap();
     }
 
     #[test]
@@ -184,9 +182,9 @@ mod tests {
         let input: Arm = parse_quote! {
             (A { x: (_, toast), data }, B(id, _), C { id } ) => ()
         };
-        let case = CaseDefinition::parse(input, 0).unwrap();
+        let mut case = CaseDefinition::parse(input, 0).unwrap();
 
         // Try to analyse
-        Partitioning::analyse(&case).unwrap();
+        Partitioning::analyse(&mut case).unwrap();
     }
 }

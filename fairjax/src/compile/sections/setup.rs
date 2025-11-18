@@ -37,12 +37,13 @@ impl SetupSectionCodeGen for SetupSection {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::analyse::partition::Partitioning;
     use crate::analyse::profile::PatternProfile;
     use crate::analyse::strategy::Strategy;
     use crate::parse::context::Context;
     use crate::traits::{Case, CaseBundle, Definition, Pattern, SubPattern};
     use proc_macro_utils::assert_tokens;
-    use proc_macro2::{Span, TokenStream};
+    use proc_macro2::{Ident, Span, TokenStream};
     use quote::{ToTokens, format_ident};
 
     struct MockCaseBundle {
@@ -62,6 +63,10 @@ mod tests {
         }
 
         fn sub_pattern_at_index(&self, _index: usize) -> &dyn SubPattern {
+            unimplemented!()
+        }
+
+        fn partitioning(&self) -> &Option<Partitioning> {
             unimplemented!()
         }
     }
@@ -86,6 +91,9 @@ mod tests {
         }
         fn span(&self) -> Span {
             Span::call_site()
+        }
+        fn ident_with_case_id(&self, _name: &'static str) -> Ident {
+            unimplemented!()
         }
     }
 

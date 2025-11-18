@@ -9,7 +9,7 @@ pub trait GuardCodeGen {
     fn generate<'a, P: PatternCodeGen>(
         case: &dyn Case,
         context: &Context,
-        fn_ident: Ident,
+        fn_ident: &mut Ident,
     ) -> TokenStream;
 }
 
@@ -19,14 +19,13 @@ impl GuardCodeGen for GuardCompiler {
     fn generate<'a, P: PatternCodeGen>(
         case: &dyn Case,
         context: &Context,
-        mut fn_ident: Ident,
+        fn_ident: &mut Ident,
     ) -> TokenStream {
         let span = match case.guard() {
             Some(guard) => guard.span(),
             None => case.span(),
         };
 
-        // Construct guard function identifier
         fn_ident.set_span(span);
 
         // Define standardized function parameter names
@@ -146,9 +145,11 @@ mod tests {
         fn body(&self) -> Expr {
             syn::parse_quote!(BODY)
         }
-
         fn span(&self) -> Span {
             Span::call_site()
+        }
+        fn ident_with_case_id(&self, _name: &'static str) -> Ident {
+            unimplemented!()
         }
     }
 
@@ -228,7 +229,7 @@ mod tests {
         let generated = GuardCompiler::generate::<MockPatternCodeGen>(
             &case,
             &context(),
-            format_ident!("guard_fn"),
+            &mut format_ident!("guard_fn"),
         );
 
         assert_tokens!(generated, {
@@ -253,7 +254,7 @@ mod tests {
         let generated = GuardCompiler::generate::<MockPatternCodeGen>(
             &case,
             &context(),
-            format_ident!("guard_fn_large"),
+            &mut format_ident!("guard_fn_large"),
         );
 
         assert_tokens!(generated, {

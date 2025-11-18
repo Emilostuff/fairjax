@@ -66,6 +66,10 @@ mod tests {
         fn sub_pattern_at_index(&self, _index: usize) -> &dyn SubPattern {
             unimplemented!()
         }
+
+        fn partitioning(&self) -> &Option<crate::analyse::partition::Partitioning> {
+            unimplemented!()
+        }
     }
 
     // Mock Case
@@ -89,6 +93,10 @@ mod tests {
 
         fn span(&self) -> Span {
             Span::call_site()
+        }
+
+        fn ident_with_case_id(&self, _name: &'static str) -> Ident {
+            unimplemented!()
         }
     }
 

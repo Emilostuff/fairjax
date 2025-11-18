@@ -45,7 +45,6 @@ macro_rules! partitions_declare_groups {
             use Msg::*;
             for msg in messages {
                 fairjax::fairjax!(match msg.clone() >> [mailbox, Msg] {
-                    #[Partitions]
                     (A(x), B(x), C(x), D(x), E(x)) => {
                         output.push(test_suite::MatchTrace::new(
                             0,

@@ -76,6 +76,9 @@ mod tests {
         fn span(&self) -> Span {
             Span::call_site()
         }
+        fn ident_with_case_id(&self, _name: &'static str) -> Ident {
+            unimplemented!()
+        }
     }
 
     // Mock PatternCodeGen trait

@@ -39,7 +39,6 @@ macro_rules! partitions_declare_pairs {
             use Msg::*;
             for msg in messages {
                 fairjax::fairjax!(match msg.clone() >> [mailbox, Msg] {
-                    #[Partitions]
                     (A(x), B(x)) => {
                         output.push(test_suite::MatchTrace::new(0, vec![A(x), B(x)]));
                     }

@@ -2,7 +2,7 @@ pub mod brute_force;
 pub mod partitions;
 pub mod stateful_tree;
 
-use crate::analyse::strategy::Strategy;
+use crate::analyse::{partition::Partitioning, strategy::Strategy};
 use crate::compile::case::{accept::AcceptCompiler, guard::GuardCodeGen, guard::GuardCompiler};
 use crate::compile::matchers::brute_force::BruteForceCompiler;
 use crate::compile::matchers::partitions::PartitionsCompiler;
@@ -23,54 +23,49 @@ pub trait SetupCodeGen {
 pub struct Setup;
 
 impl SetupCodeGen for Setup {
-    fn generate(bundle: &dyn CaseBundle, context: Context, factory_ident: &Ident) -> TokenStream {
-        // Down stream dependencies
-        let stateful =
-            StatefulTreeCompiler::generate::<AcceptCompiler, MatchArmCompiler, MappingCompiler>;
-        let bruteforce = BruteForceCompiler::generate;
-        let partitions = PartitionsCompiler::generate;
-        let guard = GuardCompiler::generate::<PatternCompiler>;
-
+    fn generate(bundle: &dyn CaseBundle, ctx: Context, factory_ident: &Ident) -> TokenStream {
         // Generate guard setup code
-        let guard_fn_ident = Ident::new(
-            &format!("fairjax_guard_function{}", bundle.case().index()),
-            bundle.case().span(),
-        );
-        let guard_code = guard(bundle.case(), &context, guard_fn_ident.clone());
+        let mut guard_fn_ident = bundle.case().ident_with_case_id("fairjax_guard_function");
+        let guard_code =
+            GuardCompiler::generate::<PatternCompiler>(bundle.case(), &ctx, &mut guard_fn_ident);
 
-        // Generate matcher setup code
-        let matcher_code = match bundle.strategy() {
-            Strategy::StatefulTree => stateful(bundle, context, factory_ident, &guard_fn_ident),
-            Strategy::BruteForce => bruteforce(bundle, context, factory_ident, &guard_fn_ident),
-            Strategy::Partitions { vars, pattern } => {
-                let inner_factory_ident = Ident::new(
-                    &format!("inner_matcher{}", bundle.case().index()),
-                    bundle.case().span(),
-                );
-                let stateful_tree_code = stateful(
-                    bundle,
-                    context.clone(),
-                    &inner_factory_ident,
-                    &guard_fn_ident,
-                );
-                let partitions_code = partitions(
-                    pattern,
-                    vars,
-                    context,
+        // Generate code for partitioning middle-ware (if applicable)
+        let (matcher_factory_ident, partitioning_code) =
+            if let Some(Partitioning { vars, pattern }) = bundle.partitioning() {
+                let matcher_factory_ident = bundle.case().ident_with_case_id("inner_matcher");
+                let partitioning_code = PartitionsCompiler::generate(
+                    &pattern,
+                    &vars,
+                    ctx.clone(),
                     bundle,
                     &factory_ident,
-                    &inner_factory_ident,
+                    &matcher_factory_ident,
                 );
-                quote_spanned! { bundle.case().span() =>
-                    #stateful_tree_code
-                    #partitions_code
-                }
+
+                (matcher_factory_ident, partitioning_code)
+            } else {
+                (factory_ident.clone(), TokenStream::new())
+            };
+
+        // Generate backend matcher code
+        let matcher_code = match bundle.strategy() {
+            Strategy::StatefulTree => StatefulTreeCompiler::generate::<
+                AcceptCompiler,
+                MatchArmCompiler,
+                MappingCompiler,
+            >(
+                bundle, ctx, &matcher_factory_ident, &guard_fn_ident
+            ),
+            Strategy::BruteForce => {
+                BruteForceCompiler::generate(bundle, ctx, &matcher_factory_ident, &guard_fn_ident)
             }
         };
 
+        // Assemble code snippets
         quote_spanned! { bundle.case().span() =>
             #guard_code
             #matcher_code
+            #partitioning_code
         }
     }
 }

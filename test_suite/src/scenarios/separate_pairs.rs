@@ -47,16 +47,12 @@ macro_rules! partitions_declare_separate_pairs {
             use Msg::*;
             for msg in messages {
                 fairjax::fairjax!(match msg.clone() >> [mailbox, Msg] {
-                    #[Partitions]
                     (A(0, x), B(0, x)) =>
                         output.push(test_suite::MatchTrace::new(0, vec![A(0, x), B(0, x)])),
-                    #[Partitions]
                     (A(1, x), B(1, x)) =>
                         output.push(test_suite::MatchTrace::new(0, vec![A(1, x), B(1, x)])),
-                    #[Partitions]
                     (A(2, x), B(2, x)) =>
                         output.push(test_suite::MatchTrace::new(0, vec![A(2, x), B(2, x)])),
-                    #[Partitions]
                     (A(3, x), B(3, x)) =>
                         output.push(test_suite::MatchTrace::new(0, vec![A(3, x), B(3, x)])),
                 });

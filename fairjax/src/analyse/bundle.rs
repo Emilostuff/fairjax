@@ -7,56 +7,32 @@ use syn::Result;
 
 pub struct CaseBundleDefinition {
     pub case: CaseDefinition,
+    pub partitioning: Option<Partitioning>,
     pub pattern_profile: PatternProfile,
     pub strategy: Strategy,
 }
 
 impl CaseBundleDefinition {
     pub fn analyse(mut case: CaseDefinition) -> Result<Self> {
+        let partitioning = Partitioning::analyse(&mut case)?;
+
         let pattern_profile = PatternProfile::new(&case.pattern);
-        let partitions = Partitioning::analyse(&case)?;
 
-        use InputStrategy::*;
-        let strategy = match partitions {
-            Some(Partitioning { vars, clean_case }) => match case.strategy {
-                BruteForce | StatefulTree => {
-                    return Err(syn::Error::new(
-                        Span::call_site(),
-                        "Only Partitions strategy is compatible with partition variables.",
-                    ));
-                }
-                Auto | Partitions => {
-                    // Verify that pattern is distinct
-                    if !pattern_profile.is_distinct() {
-                        return Err(syn::Error::new(
-                            Span::call_site(),
-                            "Pattern must only have one occurrence per message variant when using partition variables.",
-                        ));
-                    }
+        if partitioning.is_some() && !pattern_profile.is_distinct() {
+            return Err(syn::Error::new(
+                Span::call_site(),
+                "Pattern must only have one occurrence per message variant when using partition variables.",
+            ));
+        }
 
-                    // Swap case and inner case
-                    let strategy = Strategy::Partitions {
-                        vars,
-                        pattern: case.pattern,
-                    };
-                    case = clean_case;
-                    strategy
-                }
-            },
-            None => match case.strategy {
-                BruteForce => Strategy::BruteForce,
-                StatefulTree | Auto => Strategy::StatefulTree,
-                Partitions => {
-                    return Err(syn::Error::new(
-                        Span::call_site(),
-                        "Partitions strategy chosen, but no partition variables found.",
-                    ));
-                }
-            },
+        let strategy = match &case.strategy {
+            InputStrategy::BruteForce => Strategy::BruteForce,
+            InputStrategy::StatefulTree | InputStrategy::Auto => Strategy::StatefulTree,
         };
 
         Ok(Self {
             case,
+            partitioning,
             pattern_profile,
             strategy,
         })

@@ -40,8 +40,8 @@ impl MatchArmCodeGen for MatchArmCompiler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::analyse::profile::MessageGroup;
-    use crate::analyse::profile::PatternProfile;
+    use crate::analyse::partition::Partitioning;
+    use crate::analyse::profile::{MessageGroup, PatternProfile};
     use crate::analyse::strategy::Strategy;
     use crate::compile::pattern::sub::SubPatternCodeGen;
     use crate::parse::sub_pattern::SubPatternDefinition;
@@ -73,6 +73,10 @@ mod tests {
 
         fn sub_pattern_at_index(&self, index: usize) -> &dyn SubPattern {
             &self.sub_patterns[index]
+        }
+
+        fn partitioning(&self) -> &Option<Partitioning> {
+            unimplemented!()
         }
     }
 
