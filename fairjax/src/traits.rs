@@ -1,5 +1,6 @@
+use crate::analyse::groups::SubPatternGroups;
+use crate::analyse::partition::Partitioning;
 use crate::analyse::strategy::Strategy;
-use crate::analyse::{partition::Partitioning, profile::PatternProfile};
 use crate::parse::context::Context;
 use crate::parse::pattern::PatternDefinition;
 use crate::parse::sub_pattern::SubPatternDefinition;
@@ -25,7 +26,7 @@ pub trait CaseBundle {
     fn case(&self) -> &dyn Case;
     fn strategy(&self) -> &Strategy;
     fn partitioning(&self) -> &Option<Partitioning>;
-    fn pattern_profile(&self) -> &PatternProfile;
+    fn sub_pattern_groups(&self) -> &SubPatternGroups;
     fn sub_pattern_at_index(&self, index: usize) -> &dyn SubPattern;
 }
 
@@ -42,7 +43,7 @@ impl CaseBundle for crate::analyse::bundle::CaseBundleDefinition {
         &self.partitioning
     }
 
-    fn pattern_profile(&self) -> &PatternProfile {
+    fn sub_pattern_groups(&self) -> &SubPatternGroups {
         &self.pattern_profile
     }
 

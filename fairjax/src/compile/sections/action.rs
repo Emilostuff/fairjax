@@ -39,7 +39,7 @@ impl ActionSectionCodeGen for ActionSection {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::analyse::profile::PatternProfile;
+    use crate::analyse::groups::SubPatternGroups;
     use crate::analyse::strategy::Strategy;
     use crate::traits::{Case, Pattern, SubPattern};
     use proc_macro_utils::assert_tokens;
@@ -59,7 +59,7 @@ mod tests {
             unimplemented!()
         }
 
-        fn pattern_profile(&self) -> &PatternProfile {
+        fn sub_pattern_groups(&self) -> &SubPatternGroups {
             unimplemented!()
         }
 

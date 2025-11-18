@@ -3,8 +3,8 @@
 mod analyse {
     pub mod bundle;
     pub mod definition;
+    pub mod groups;
     pub mod partition;
-    pub mod profile;
     pub mod strategy;
 }
 

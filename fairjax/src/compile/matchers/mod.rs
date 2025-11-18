@@ -29,7 +29,7 @@ impl SetupCodeGen for Setup {
         let guard_code =
             GuardCompiler::generate::<PatternCompiler>(bundle.case(), &ctx, &mut guard_fn_ident);
 
-        // Generate code for partitioning middle-ware (if applicable)
+        // Generate code for partitioning middleware (if applicable)
         let (matcher_factory_ident, partitioning_code) =
             if let Some(Partitioning { vars, pattern }) = bundle.partitioning() {
                 let matcher_factory_ident = bundle.case().ident_with_case_id("inner_matcher");

@@ -1,5 +1,5 @@
+use crate::analyse::groups::SubPatternGroups;
 use crate::analyse::partition::Partitioning;
-use crate::analyse::profile::PatternProfile;
 use crate::parse::strategy::InputStrategy;
 use crate::{analyse::strategy::Strategy, parse::case::CaseDefinition};
 use proc_macro2::Span;
@@ -8,17 +8,16 @@ use syn::Result;
 pub struct CaseBundleDefinition {
     pub case: CaseDefinition,
     pub partitioning: Option<Partitioning>,
-    pub pattern_profile: PatternProfile,
+    pub pattern_profile: SubPatternGroups,
     pub strategy: Strategy,
 }
 
 impl CaseBundleDefinition {
     pub fn analyse(mut case: CaseDefinition) -> Result<Self> {
         let partitioning = Partitioning::analyse(&mut case)?;
+        let groups = SubPatternGroups::new(&case.pattern);
 
-        let pattern_profile = PatternProfile::new(&case.pattern);
-
-        if partitioning.is_some() && !pattern_profile.is_distinct() {
+        if partitioning.is_some() && !groups.is_distinct() {
             return Err(syn::Error::new(
                 Span::call_site(),
                 "Pattern must only have one occurrence per message variant when using partition variables.",
@@ -33,7 +32,7 @@ impl CaseBundleDefinition {
         Ok(Self {
             case,
             partitioning,
-            pattern_profile,
+            pattern_profile: groups,
             strategy,
         })
     }

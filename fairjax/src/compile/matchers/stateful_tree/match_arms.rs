@@ -12,18 +12,18 @@ pub struct MatchArmCompiler;
 impl MatchArmCodeGen for MatchArmCompiler {
     fn generate<S: SubPatternCodeGen>(span: Span, bundle: &dyn CaseBundle) -> TokenStream {
         let match_arms = bundle
-            .pattern_profile()
+            .sub_pattern_groups()
             .0
             .iter()
             .scan(0, |position, stats| {
                 // Create anonymized sub pattern
                 let anonymized_sub_pattern =
-                    S::generate(bundle.sub_pattern_at_index(stats.sub_pattern_index), true);
+                    S::generate(bundle.sub_pattern_at_index(stats.first()), true);
 
                 // Determine which positions in the data structure should be reserved
                 // for this sub-pattern type
                 let start = *position;
-                let end = start + stats.occurrences;
+                let end = start + stats.size();
 
                 // Update folding iterator
                 *position = end;
@@ -40,8 +40,8 @@ impl MatchArmCodeGen for MatchArmCompiler {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::analyse::groups::{Group, SubPatternGroups};
     use crate::analyse::partition::Partitioning;
-    use crate::analyse::profile::{MessageGroup, PatternProfile};
     use crate::analyse::strategy::Strategy;
     use crate::compile::pattern::sub::SubPatternCodeGen;
     use crate::parse::sub_pattern::SubPatternDefinition;
@@ -56,7 +56,7 @@ mod tests {
 
     struct MockCaseBundle {
         sub_patterns: Vec<MockSubPattern>,
-        profile: PatternProfile,
+        profile: SubPatternGroups,
     }
 
     impl CaseBundle for MockCaseBundle {
@@ -67,7 +67,7 @@ mod tests {
             unimplemented!()
         }
 
-        fn pattern_profile(&self) -> &PatternProfile {
+        fn sub_pattern_groups(&self) -> &SubPatternGroups {
             &self.profile
         }
 
@@ -103,11 +103,7 @@ mod tests {
     // Tests
     #[test]
     fn test_single() {
-        let profile = PatternProfile(vec![MessageGroup {
-            sub_pattern_index: 0,
-            occurrences: 1,
-            positions: vec![0],
-        }]);
+        let profile = SubPatternGroups(vec![Group::new(0)]);
 
         let bundle = MockCaseBundle {
             sub_patterns: vec![MockSubPattern(ident("A"))],
@@ -147,33 +143,33 @@ mod tests {
         // C: 2 occurrences, positions [3, 7]
         // D: 2 occurrences, positions [5, 10]
         // E: 1 occurrence, position [8]
-        let profile = PatternProfile(vec![
-            MessageGroup {
-                sub_pattern_index: 0,
-                occurrences: 4,
-                positions: vec![0, 2, 6, 11],
+        let groups = vec![
+            {
+                let mut g = Group::new(0);
+                g.push(2);
+                g.push(6);
+                g.push(11);
+                g
             },
-            MessageGroup {
-                sub_pattern_index: 1,
-                occurrences: 3,
-                positions: vec![1, 4, 9],
+            {
+                let mut g = Group::new(1);
+                g.push(4);
+                g.push(9);
+                g
             },
-            MessageGroup {
-                sub_pattern_index: 3,
-                occurrences: 2,
-                positions: vec![3, 7],
+            {
+                let mut g = Group::new(3);
+                g.push(7);
+                g
             },
-            MessageGroup {
-                sub_pattern_index: 5,
-                occurrences: 2,
-                positions: vec![5, 10],
+            {
+                let mut g = Group::new(5);
+                g.push(10);
+                g
             },
-            MessageGroup {
-                sub_pattern_index: 8,
-                occurrences: 1,
-                positions: vec![8],
-            },
-        ]);
+            Group::new(8),
+        ];
+        let profile = SubPatternGroups(groups);
 
         let bundle = MockCaseBundle {
             sub_patterns,

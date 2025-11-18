@@ -37,8 +37,8 @@ impl SetupSectionCodeGen for SetupSection {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::analyse::groups::SubPatternGroups;
     use crate::analyse::partition::Partitioning;
-    use crate::analyse::profile::PatternProfile;
     use crate::analyse::strategy::Strategy;
     use crate::parse::context::Context;
     use crate::traits::{Case, CaseBundle, Definition, Pattern, SubPattern};
@@ -58,7 +58,7 @@ mod tests {
             unimplemented!()
         }
 
-        fn pattern_profile(&self) -> &PatternProfile {
+        fn sub_pattern_groups(&self) -> &SubPatternGroups {
             unimplemented!()
         }
 

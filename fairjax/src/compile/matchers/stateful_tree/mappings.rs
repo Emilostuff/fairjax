@@ -14,12 +14,12 @@ impl MappingCodeGen for MappingCompiler {
     fn generate(span: Span, bundle: &dyn CaseBundle, ident: &Ident) -> TokenStream {
         // Generate Element instances containing position lists for each subpattern
         let inputs: Vec<Vec<usize>> = bundle
-            .pattern_profile()
+            .sub_pattern_groups()
             .0
             .iter()
             .flat_map(|sp_stats| {
-                (0..sp_stats.occurrences)
-                    .map(|_| sp_stats.positions.clone())
+                (0..sp_stats.size())
+                    .map(|_| sp_stats.occurrences().clone())
                     .collect::<Vec<Vec<usize>>>()
             })
             .collect();
