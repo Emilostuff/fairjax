@@ -62,7 +62,7 @@ impl PartitionVars {
     fn is_var(input: &String) -> bool {
         input
             .chars()
-            .all(|c| !c.is_alphabetic() || c.is_lowercase())
+            .all(|c| c.is_lowercase() || !c.is_alphabetic())
     }
 
     /// Count the number of occurrences of a variable in a pattern

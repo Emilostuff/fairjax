@@ -2,6 +2,7 @@
 
 mod analyse {
     pub mod bundle;
+    pub mod content;
     pub mod definition;
     pub mod groups;
     pub mod partition;

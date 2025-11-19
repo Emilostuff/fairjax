@@ -25,7 +25,7 @@ impl SubPatternDefinition {
         }
     }
 
-    pub fn to_pattern(&self) -> Pat {
+    pub fn to_syn_pattern(&self) -> Pat {
         match self {
             SubPatternDefinition::Ident(ident) => Pat::Ident(ident.clone()),
             SubPatternDefinition::Path(path) => Pat::Path(path.clone()),

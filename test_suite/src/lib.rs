@@ -1,4 +1,5 @@
 pub mod scenarios {
+    pub mod chess;
     pub mod equal_cases;
     pub mod groups;
     pub mod many_to_one;

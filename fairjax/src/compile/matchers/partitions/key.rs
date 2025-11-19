@@ -17,7 +17,7 @@ impl KeyExtractionCompiler {
         let sub_patterns = pattern
             .sub_patterns()
             .into_iter()
-            .map(|sp| sp.get().to_pattern().to_token_stream())
+            .map(|sp| sp.get().to_syn_pattern().to_token_stream())
             .collect::<Vec<_>>();
 
         let partition_var_idents = partition_vars

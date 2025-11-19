@@ -38,7 +38,7 @@ impl Group {
 pub struct SubPatternGroups(pub Vec<Group>);
 
 impl SubPatternGroups {
-    pub fn new(pattern: &dyn Pattern) -> Self {
+    pub fn analyse(pattern: &dyn Pattern) -> Self {
         // Perform analysis on Sub Patterns, tracking their positions and occurences in the pattern
         let mut sp_stats: BTreeMap<String, Group> = BTreeMap::new();
 
@@ -122,7 +122,7 @@ mod tests {
     #[test]
     fn test_single() {
         let pattern = MockPattern::new(&["X"]);
-        let result = SubPatternGroups::new(&pattern);
+        let result = SubPatternGroups::analyse(&pattern);
 
         // Assert that only a single stat is generated
         assert_eq!(1, result.0.len());
@@ -137,7 +137,7 @@ mod tests {
     #[test]
     fn test_multiple_simple() {
         let pattern = MockPattern::new(&["A", "A", "B"]);
-        let result = SubPatternGroups::new(&pattern);
+        let result = SubPatternGroups::analyse(&pattern);
 
         // Assert that exactly two stats are generated
         assert_eq!(2, result.0.len());
@@ -158,7 +158,7 @@ mod tests {
     fn test_multiple_complex_in_order() {
         let pattern =
             MockPattern::new(&["A", "B", "A", "C", "B", "D", "A", "C", "E", "B", "D", "A"]);
-        let result = SubPatternGroups::new(&pattern);
+        let result = SubPatternGroups::analyse(&pattern);
 
         // Assert that exactly 5 stats are generated (A, B, C, D, E)
         assert_eq!(5, result.0.len());

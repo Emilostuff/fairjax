@@ -1,5 +1,6 @@
 pub mod random {
     pub mod stateful_tree {
+        pub mod chess;
         pub mod equal_cases;
         pub mod groups;
         pub mod many_to_one;
@@ -12,6 +13,7 @@ pub mod random {
     }
 
     pub mod partitions {
+        pub mod chess;
         pub mod groups;
         pub mod pairs;
         pub mod seperate_pairs;

@@ -1,6 +1,6 @@
 use crate::parse::sub_pattern::SubPatternDefinition;
 use quote::ToTokens;
-use syn::{FieldPat, Pat, PatRest, Token, punctuated::Punctuated, token::DotDot};
+use syn::{FieldPat, Ident, Pat, PatRest, Token, punctuated::Punctuated, token::DotDot};
 
 /// Cleans sub-patterns by removing or replacing occurrences of a partition variable.
 pub struct SubPatternCleaner;
@@ -12,12 +12,12 @@ impl SubPatternCleaner {
         if matches!(sub_pattern, SubPatternDefinition::Ident(_)) {
             unreachable!(
                 "Trying to clean Sub-Pattern: {} of type Ident, which must never happen",
-                sub_pattern.to_pattern().to_token_stream().to_string(),
+                sub_pattern.to_syn_pattern().to_token_stream().to_string(),
             );
         }
 
         // Otherwise clean Sub-Pattern
-        *sub_pattern = match Self::clean_rec(sub_pattern.to_pattern(), partition_vars) {
+        *sub_pattern = match Self::clean_rec(sub_pattern.to_syn_pattern(), partition_vars) {
             Pat::Path(path) => SubPatternDefinition::Path(path),
             Pat::TupleStruct(tuple_struct) => SubPatternDefinition::TupleStruct(tuple_struct),
             Pat::Struct(struct_pat) => SubPatternDefinition::Struct(struct_pat),
@@ -33,6 +33,23 @@ impl SubPatternCleaner {
             Ident(ident) if partition_vars.contains(&ident.ident.to_string()) => {
                 Self::get_wildcard()
             }
+            Ident(syn::PatIdent {
+                attrs,
+                by_ref,
+                mutability,
+                ident,
+                subpat: Some((at, mut pat)),
+            }) => {
+                pat = Box::new(Self::clean_rec(*pat, partition_vars));
+                Ident(syn::PatIdent {
+                    attrs,
+                    by_ref,
+                    mutability,
+                    ident,
+                    subpat: Some((at, pat)),
+                })
+            }
+
             // Leave ident untouched if it doesn't match
             Ident(ident) => Ident(ident),
             // Process the internal pattern of the parenthesis
@@ -347,7 +364,7 @@ mod tests {
         // Clean pattern - should panic as we don't allow cleaning standalone Idents
         SubPatternCleaner::clean(&mut sub_pattern, &partition_vars);
 
-        assert_tokens!(sub_pattern.to_pattern().to_token_stream(), {
+        assert_tokens!(sub_pattern.to_syn_pattern().to_token_stream(), {
             A(_, x, y, _)
         });
     }

@@ -14,11 +14,6 @@ impl SubPatternOccurrences {
 }
 
 /// Tracks all Ident occurrences across all sub-patterns in a Pattern.
-///
-/// The data structure maps the identifier name to a vector of `SubPatternOccurrences`,
-/// where each vector index corresponds to a sub-pattern position in the pattern. Each
-/// `SubPatternOccurrences` object contains the spans where that identifier appears in
-/// that specific sub-pattern.
 #[derive(Clone)]
 pub struct IdentCounts {
     pub(super) pattern_size: usize,
@@ -33,7 +28,7 @@ impl IdentCounts {
             counts: BTreeMap::new(),
         };
         for (i, sub_pattern) in pat_def.sub_patterns.iter().enumerate() {
-            acc.count_rec(&sub_pattern.to_pattern(), i)?;
+            acc.count_rec(&sub_pattern.to_syn_pattern(), i)?;
         }
         Ok(acc)
     }
@@ -58,6 +53,9 @@ impl IdentCounts {
             // Count occurences in all supported types
             Ident(ident) => Ok({
                 self.add(&ident.ident, index);
+                if let Some((_, sub_pat)) = &ident.subpat {
+                    self.count_rec(&sub_pat, index)?;
+                }
             }),
             Paren(pat_paren) => self.count_rec(&pat_paren.pat, index),
             Slice(PatSlice { elems, .. })

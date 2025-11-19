@@ -30,22 +30,26 @@ impl SetupCodeGen for Setup {
             GuardCompiler::generate::<PatternCompiler>(bundle.case(), &ctx, &mut guard_fn_ident);
 
         // Generate code for partitioning middleware (if applicable)
-        let (matcher_factory_ident, partitioning_code) =
-            if let Some(Partitioning { vars, pattern, .. }) = bundle.partitioning() {
-                let matcher_factory_ident = bundle.case().ident_with_case_id("inner_matcher");
-                let partitioning_code = PartitionsCompiler::generate(
-                    &pattern,
-                    &vars,
-                    ctx.clone(),
-                    bundle,
-                    &factory_ident,
-                    &matcher_factory_ident,
-                );
+        let (matcher_factory_ident, partitioning_code) = if let Some(Partitioning {
+            vars,
+            original_pattern: pattern,
+            ..
+        }) = bundle.partitioning()
+        {
+            let matcher_factory_ident = bundle.case().ident_with_case_id("inner_matcher");
+            let partitioning_code = PartitionsCompiler::generate(
+                &pattern,
+                &vars,
+                ctx.clone(),
+                bundle,
+                &factory_ident,
+                &matcher_factory_ident,
+            );
 
-                (matcher_factory_ident, partitioning_code)
-            } else {
-                (factory_ident.clone(), TokenStream::new())
-            };
+            (matcher_factory_ident, partitioning_code)
+        } else {
+            (factory_ident.clone(), TokenStream::new())
+        };
 
         // Generate backend matcher code
         let matcher_code = match bundle.strategy() {

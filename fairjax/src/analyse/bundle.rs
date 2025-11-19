@@ -1,3 +1,4 @@
+use crate::analyse::content::SubPatternContents;
 use crate::analyse::groups::SubPatternGroups;
 use crate::analyse::partition::Partitioning;
 use crate::parse::strategy::InputStrategy;
@@ -8,26 +9,39 @@ use syn::Result;
 pub struct CaseBundleDefinition {
     pub case: CaseDefinition,
     pub partitioning: Option<Partitioning>,
-    pub pattern_profile: SubPatternGroups,
+    pub groups: SubPatternGroups,
     pub strategy: Strategy,
 }
 
 impl CaseBundleDefinition {
     pub fn analyse(mut case: CaseDefinition) -> Result<Self> {
         // Analysis
-        let partitioning = Partitioning::analyse(&case)?;
-        let groups = SubPatternGroups::new(&case.pattern);
+        let partitioning = Partitioning::analyse(&case.pattern)?;
+        let groups = SubPatternGroups::analyse(&case.pattern);
+        let contents = SubPatternContents::extract(&case.pattern);
 
         // Validate partitioning (if present)
         if let Some(partitioning) = &partitioning {
-            if !groups.is_distinct() {
-                return Err(syn::Error::new(
-                    Span::call_site(),
-                    "Pattern must only have one occurrence per message variant when using partition variables.",
-                ));
-            } else {
-                case = partitioning.cleaned_case.clone();
+            for group in &groups.0 {
+                if group.size() > 1 {
+                    let (first, rest) = group.occurrences().split_at(1);
+                    let first = &contents[first[0]];
+                    for other in rest {
+                        let other = &contents[*other];
+
+                        for partition_var in &partitioning.vars {
+                            if !SubPatternContents::same_placements(&partition_var, first, other) {
+                                return Err(syn::Error::new(
+                                    Span::call_site(),
+                                    "Pattern must only have one occurrence per message variant when using partition variables.",
+                                ));
+                            }
+                        }
+                    }
+                }
             }
+            // Partitioning is possible
+            case.pattern = partitioning.cleaned_pattern.clone();
         }
 
         // Choose the best, valid strategy
@@ -39,7 +53,7 @@ impl CaseBundleDefinition {
         Ok(Self {
             case,
             partitioning,
-            pattern_profile: groups,
+            groups,
             strategy,
         })
     }

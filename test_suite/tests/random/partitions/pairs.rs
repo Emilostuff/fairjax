@@ -8,7 +8,7 @@ test_suite::partitions_declare_pairs!(partitions);
 fn run(n_runs: usize, size: usize) {
     for _ in 0..n_runs {
         let messages = generate_random_messages(size, None);
-        crate::compare("Partitioned pairs", messages, partitions, stateful);
+        crate::compare("Partitioned pairs", messages, stateful, partitions);
     }
 }
 

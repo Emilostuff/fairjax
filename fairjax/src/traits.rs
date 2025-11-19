@@ -44,7 +44,7 @@ impl CaseBundle for crate::analyse::bundle::CaseBundleDefinition {
     }
 
     fn sub_pattern_groups(&self) -> &SubPatternGroups {
-        &self.pattern_profile
+        &self.groups
     }
 
     fn sub_pattern_at_index(&self, index: usize) -> &dyn SubPattern {
