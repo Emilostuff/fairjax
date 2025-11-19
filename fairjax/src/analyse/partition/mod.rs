@@ -13,10 +13,13 @@ use syn::Result;
 pub struct Partitioning {
     pub vars: Vec<String>,
     pub pattern: PatternDefinition,
+    pub cleaned_case: CaseDefinition,
 }
 
 impl Partitioning {
-    pub fn analyse(case: &mut CaseDefinition) -> Result<Option<Self>> {
+    pub fn analyse(case: &CaseDefinition) -> Result<Option<Self>> {
+        let mut case = case.clone();
+
         // If pattern contains a single message, partitioning will be irrelevant
         if case.pattern.len() < 2 {
             return Ok(None);
@@ -28,14 +31,18 @@ impl Partitioning {
         // Handle result
         match PartitionVars::identify(counts, case.pattern.len())? {
             vars if !vars.is_empty() => {
-                let output = Self {
-                    vars: vars.clone(),
-                    pattern: case.pattern.clone(),
-                };
-                Self::clean_case(case, &vars);
-                Ok(Some(output))
-            }
+                // Extract original pattern with partition vars
+                let pattern = case.pattern.clone();
 
+                // Clean case from partition vars (except first sub-pattern)
+                Self::clean_case(&mut case, &vars);
+
+                Ok(Some(Self {
+                    vars: vars.clone(),
+                    pattern,
+                    cleaned_case: case,
+                }))
+            }
             _ => Ok(None),
         }
     }
@@ -89,21 +96,24 @@ mod tests {
             (A(x), B(x)) => ()
         };
 
-        let mut case = CaseDefinition::parse(input, 0).unwrap();
+        let case = CaseDefinition::parse(input, 0).unwrap();
 
         // Analyze input
-        let result = Partitioning::analyse(&mut case).unwrap().unwrap();
+        let result = Partitioning::analyse(&case).unwrap().unwrap();
 
         // Extract and verify results
-        let sub_patterns = case
+        let sub_patterns = result
+            .cleaned_case
             .pattern
             .sub_patterns
             .iter()
             .map(|sp| sp.to_pattern())
             .collect::<Vec<_>>();
 
+        // Verify correct partition variable is extracted
         assert_eq!(vec!["x"], result.vars);
 
+        // Verify pattern is cleaned correctly
         assert_tokens!(sub_patterns[0].to_token_stream(), { A(x) });
         assert_tokens!(sub_patterns[1].to_token_stream(), { B(_) });
     }
@@ -114,10 +124,10 @@ mod tests {
         let input: Arm = parse_quote! {
             (A { x: (_, id), .. }, B(_, id), C { id } ) => ()
         };
-        let mut case = CaseDefinition::parse(input, 0).unwrap();
+        let case = CaseDefinition::parse(input, 0).unwrap();
 
         // Analyze input
-        let result = Partitioning::analyse(&mut case).unwrap().unwrap();
+        let result = Partitioning::analyse(&case).unwrap().unwrap();
 
         // Verify results
         assert_eq!(vec!["id"], result.vars);
@@ -129,10 +139,10 @@ mod tests {
         let input: Arm = parse_quote! {
             (A { x: (_, id), .. }, B(_, id2), C { id3 } ) => ()
         };
-        let mut case = CaseDefinition::parse(input, 0).unwrap();
+        let case = CaseDefinition::parse(input, 0).unwrap();
 
         // Parse input and ensure no partition vars are found
-        assert!(Partitioning::analyse(&mut case).unwrap().is_none());
+        assert!(Partitioning::analyse(&case).unwrap().is_none());
     }
 
     #[test]
@@ -141,21 +151,24 @@ mod tests {
         let input: Arm = parse_quote! {
             (A { x: (_, id), data }, B(id, data), C { id, data } ) => ()
         };
-        let mut case = CaseDefinition::parse(input, 0).unwrap();
+        let case = CaseDefinition::parse(input, 0).unwrap();
 
         // Analyze input
-        let result = Partitioning::analyse(&mut case).unwrap().unwrap();
+        let result = Partitioning::analyse(&case).unwrap().unwrap();
 
         // Extract and verify results
-        let sub_patterns = case
+        let sub_patterns = result
+            .cleaned_case
             .pattern
             .sub_patterns
             .iter()
             .map(|sp| sp.to_pattern())
             .collect::<Vec<_>>();
 
+        // Verify correct partition variable is extracted
         assert_eq!(vec!["data", "id"], result.vars);
 
+        // Verify pattern is cleaned correctly
         #[rustfmt::skip]
         assert_tokens!(sub_patterns[0].to_token_stream(), { A { x: (_, id), data } });
         assert_tokens!(sub_patterns[1].to_token_stream(), { B(_, _) });
@@ -169,10 +182,10 @@ mod tests {
         let input: Arm = parse_quote! {
             (A { x: (_, id), .. }, B(id, id), C { id } ) => ()
         };
-        let mut case = CaseDefinition::parse(input, 0).unwrap();
+        let case = CaseDefinition::parse(input, 0).unwrap();
 
         // Try to analyse
-        Partitioning::analyse(&mut case).unwrap();
+        Partitioning::analyse(&case).unwrap();
     }
 
     #[test]
@@ -182,9 +195,9 @@ mod tests {
         let input: Arm = parse_quote! {
             (A { x: (_, toast), data }, B(id, _), C { id } ) => ()
         };
-        let mut case = CaseDefinition::parse(input, 0).unwrap();
+        let case = CaseDefinition::parse(input, 0).unwrap();
 
         // Try to analyse
-        Partitioning::analyse(&mut case).unwrap();
+        Partitioning::analyse(&case).unwrap();
     }
 }

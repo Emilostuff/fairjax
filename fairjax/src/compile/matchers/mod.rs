@@ -31,7 +31,7 @@ impl SetupCodeGen for Setup {
 
         // Generate code for partitioning middleware (if applicable)
         let (matcher_factory_ident, partitioning_code) =
-            if let Some(Partitioning { vars, pattern }) = bundle.partitioning() {
+            if let Some(Partitioning { vars, pattern, .. }) = bundle.partitioning() {
                 let matcher_factory_ident = bundle.case().ident_with_case_id("inner_matcher");
                 let partitioning_code = PartitionsCompiler::generate(
                     &pattern,

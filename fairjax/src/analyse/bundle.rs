@@ -14,16 +14,23 @@ pub struct CaseBundleDefinition {
 
 impl CaseBundleDefinition {
     pub fn analyse(mut case: CaseDefinition) -> Result<Self> {
-        let partitioning = Partitioning::analyse(&mut case)?;
+        // Analysis
+        let partitioning = Partitioning::analyse(&case)?;
         let groups = SubPatternGroups::new(&case.pattern);
 
-        if partitioning.is_some() && !groups.is_distinct() {
-            return Err(syn::Error::new(
-                Span::call_site(),
-                "Pattern must only have one occurrence per message variant when using partition variables.",
-            ));
+        // Validate partitioning (if present)
+        if let Some(partitioning) = &partitioning {
+            if !groups.is_distinct() {
+                return Err(syn::Error::new(
+                    Span::call_site(),
+                    "Pattern must only have one occurrence per message variant when using partition variables.",
+                ));
+            } else {
+                case = partitioning.cleaned_case.clone();
+            }
         }
 
+        // Choose the best, valid strategy
         let strategy = match &case.strategy {
             InputStrategy::BruteForce => Strategy::BruteForce,
             InputStrategy::StatefulTree | InputStrategy::Auto => Strategy::StatefulTree,
