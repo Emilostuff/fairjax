@@ -136,9 +136,9 @@ impl SubPatternContents {
         };
     }
 
-    pub fn same_refutables(a: &Self, b: &Self) -> bool {
-        a.refutables == b.refutables
-    }
+    // pub fn same_refutables(a: &Self, b: &Self) -> bool {
+    //     a.refutables == b.refutables
+    // }
 
     pub fn same_placements(binding: &String, a: &Self, b: &Self) -> bool {
         match (a.bindings.get(binding), b.bindings.get(binding)) {

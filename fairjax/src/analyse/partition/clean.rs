@@ -1,6 +1,6 @@
 use crate::parse::sub_pattern::SubPatternDefinition;
 use quote::ToTokens;
-use syn::{FieldPat, Ident, Pat, PatRest, Token, punctuated::Punctuated, token::DotDot};
+use syn::{FieldPat, Pat, PatRest, Token, punctuated::Punctuated, token::DotDot};
 
 /// Cleans sub-patterns by removing or replacing occurrences of a partition variable.
 pub struct SubPatternCleaner;

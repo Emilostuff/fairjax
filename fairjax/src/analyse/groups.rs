@@ -55,11 +55,6 @@ impl SubPatternGroups {
 
         Self(sp_stats.into_values().collect())
     }
-
-    /// Pattern does not have any repeated message variants
-    pub fn is_distinct(&self) -> bool {
-        self.0.iter().all(|group| group.size() == 1)
-    }
 }
 
 #[cfg(test)]
