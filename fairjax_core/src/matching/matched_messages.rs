@@ -1,6 +1,4 @@
 use crate::CaseId;
-use itertools::Itertools;
-use itertools::traits::HomogeneousTuple;
 
 #[allow(unused)]
 pub struct MatchedMessages<M> {
@@ -10,12 +8,13 @@ pub struct MatchedMessages<M> {
 
 // Macro to generate tuple conversion methods using collect
 macro_rules! impl_get_n_method {
-    ($name:ident, $tuple:ty) => {
-        pub fn $name(self) -> $tuple
-        where
-            $tuple: HomogeneousTuple<Item = M>,
-        {
-            self.messages.into_iter().collect_tuple().unwrap()
+    ($name:ident, $($idx:ident),+) => {
+        pub fn $name(self) -> ($($idx,)+) {
+            let mut iter = self.messages.into_iter();
+            ($( {
+                let _ = ::std::marker::PhantomData::<$idx>;
+                iter.next().unwrap()
+            }, )+)
         }
     };
 }
@@ -28,21 +27,22 @@ impl<M> MatchedMessages<M> {
     pub fn into_1(self) -> M {
         self.messages.into_iter().next().unwrap()
     }
-    impl_get_n_method!(into_2, (M, M));
-    impl_get_n_method!(into_3, (M, M, M));
-    impl_get_n_method!(into_4, (M, M, M, M));
-    impl_get_n_method!(into_5, (M, M, M, M, M));
-    impl_get_n_method!(into_6, (M, M, M, M, M, M));
-    impl_get_n_method!(into_7, (M, M, M, M, M, M, M));
-    impl_get_n_method!(into_8, (M, M, M, M, M, M, M, M));
-    impl_get_n_method!(into_9, (M, M, M, M, M, M, M, M, M));
-    impl_get_n_method!(into_10, (M, M, M, M, M, M, M, M, M, M));
-    impl_get_n_method!(into_11, (M, M, M, M, M, M, M, M, M, M, M));
-    impl_get_n_method!(into_12, (M, M, M, M, M, M, M, M, M, M, M, M));
-    impl_get_n_method!(into_13, (M, M, M, M, M, M, M, M, M, M, M, M, M));
-    impl_get_n_method!(into_14, (M, M, M, M, M, M, M, M, M, M, M, M, M, M));
-    impl_get_n_method!(into_15, (M, M, M, M, M, M, M, M, M, M, M, M, M, M, M));
-    impl_get_n_method!(into_16, (M, M, M, M, M, M, M, M, M, M, M, M, M, M, M, M));
+
+    impl_get_n_method!(into_2, M, M);
+    impl_get_n_method!(into_3, M, M, M);
+    impl_get_n_method!(into_4, M, M, M, M);
+    impl_get_n_method!(into_5, M, M, M, M, M);
+    impl_get_n_method!(into_6, M, M, M, M, M, M);
+    impl_get_n_method!(into_7, M, M, M, M, M, M, M);
+    impl_get_n_method!(into_8, M, M, M, M, M, M, M, M);
+    impl_get_n_method!(into_9, M, M, M, M, M, M, M, M, M);
+    impl_get_n_method!(into_10, M, M, M, M, M, M, M, M, M, M);
+    impl_get_n_method!(into_11, M, M, M, M, M, M, M, M, M, M, M);
+    impl_get_n_method!(into_12, M, M, M, M, M, M, M, M, M, M, M, M);
+    impl_get_n_method!(into_13, M, M, M, M, M, M, M, M, M, M, M, M, M);
+    impl_get_n_method!(into_14, M, M, M, M, M, M, M, M, M, M, M, M, M, M);
+    impl_get_n_method!(into_15, M, M, M, M, M, M, M, M, M, M, M, M, M, M, M);
+    impl_get_n_method!(into_16, M, M, M, M, M, M, M, M, M, M, M, M, M, M, M, M);
 }
 
 #[cfg(test)]
