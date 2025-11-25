@@ -39,6 +39,10 @@ impl<M> MatchedMessages<M> {
     impl_get_n_method!(into_10, (M, M, M, M, M, M, M, M, M, M));
     impl_get_n_method!(into_11, (M, M, M, M, M, M, M, M, M, M, M));
     impl_get_n_method!(into_12, (M, M, M, M, M, M, M, M, M, M, M, M));
+    impl_get_n_method!(into_13, (M, M, M, M, M, M, M, M, M, M, M, M, M));
+    impl_get_n_method!(into_14, (M, M, M, M, M, M, M, M, M, M, M, M, M, M));
+    impl_get_n_method!(into_15, (M, M, M, M, M, M, M, M, M, M, M, M, M, M, M));
+    impl_get_n_method!(into_16, (M, M, M, M, M, M, M, M, M, M, M, M, M, M, M, M));
 }
 
 #[cfg(test)]
