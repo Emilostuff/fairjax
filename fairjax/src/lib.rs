@@ -37,10 +37,12 @@ mod parse {
     pub mod sub_pattern;
 }
 
+mod manager;
 mod traits;
 
 use crate::compile::sections::{action::ActionSection, setup::SetupSection};
 use crate::compile::top::TopLevelCodeGen;
+use crate::manager::FairjaxManagerDefinition;
 
 #[proc_macro]
 pub fn fairjax(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -54,4 +56,10 @@ pub fn fairjax(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         },
         Err(e) => return e.to_compile_error().into(),
     }
+}
+
+#[proc_macro]
+pub fn fairjax_manager(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let def = syn::parse_macro_input!(input as FairjaxManagerDefinition);
+    def.generate().into()
 }
