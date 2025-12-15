@@ -179,3 +179,92 @@ impl FairjaxManagerDefinition {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proc_macro_utils::assert_tokens;
+    use quote::ToTokens;
+    use syn::parse_str;
+
+    #[test]
+    fn test_parse_valid_input() {
+        // Define input
+        let input = "MyManager, MyMessage, 3";
+
+        // Parse
+        let result: FairjaxManagerDefinition = parse_str(input).unwrap();
+
+        // Assert correctness
+        assert_eq!(result.matcher_count, 3);
+        assert_tokens!(result.manager_name.to_token_stream(), { MyManager });
+        assert_tokens!(result.message_type.to_token_stream(), { MyMessage });
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_parse_invalid_input_count() {
+        // Define input
+        let input = "MyManager, MyMessage";
+
+        // Parse (Should fail with only two inputs)
+        let _: FairjaxManagerDefinition = parse_str(input).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_parse_numbers_as_manager_name() {
+        // Define input
+        let input = "123, MyMessage, 2";
+
+        // Parse (Should fail with manager name not being a path)
+        let _: FairjaxManagerDefinition = parse_str(input).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_parse_long_path_as_manager_name() {
+        // Define input
+        let input = "some::path::MyManager, MyMessage, 2";
+
+        // Parse (Should fail with manager name not being a path of length 1)
+        let _: FairjaxManagerDefinition = parse_str(input).unwrap();
+    }
+
+    #[test]
+    fn test_long_path_as_message_type() {
+        // Define input
+        let input = "MyManager, some::path::MyMessage, 3";
+
+        // Parse
+        let result: FairjaxManagerDefinition = parse_str(input).unwrap();
+
+        // Assert correctness
+        assert_eq!(result.matcher_count, 3);
+        assert_tokens!(result.manager_name.to_token_stream(), { MyManager });
+        assert_tokens!(result.message_type.to_token_stream(), {
+            some::path::MyMessage
+        });
+    }
+
+    #[test]
+    fn test_gen_enum_declaration_code() {
+        // Define input
+        let enum_ident = format_ident!("MyMatcher");
+        let matcher_count = 4;
+
+        // Perform codegen
+        let result =
+            FairjaxManagerDefinition::gen_enum_declaration_code(&enum_ident, matcher_count);
+
+        // Assert correctness
+        assert_tokens!(result, {
+            enum MyMatcher {
+                Matcher0,
+                Matcher1,
+                Matcher2,
+                Matcher3,
+            }
+        });
+    }
+}
