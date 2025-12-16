@@ -1,61 +1,35 @@
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
-use syn::parse::{Parse, ParseStream};
-use syn::punctuated::Punctuated;
-use syn::{Error, Expr, Ident, Lit, Path, Result, Token};
+use syn::{Error, Expr, Ident, Lit, Result};
 
 pub struct FairjaxManagerDefinition {
-    pub manager_name: Path,
-    pub message_type: Path,
     pub matcher_count: usize,
 }
 
 // Input Parsing
-impl Parse for FairjaxManagerDefinition {
-    fn parse(input: ParseStream) -> Result<Self> {
-        // Parse input as comma separated list
-        let args: Punctuated<Expr, Token![,]> = Punctuated::parse_terminated(input)?;
-
-        // Check that the correct number of inputs were provided:
-        if args.len() != 3 {
-            return Err(Error::new(
-                input.span(),
-                "Expected input: `<MANAGER_NAME>, <MESSAGE_TYPE>, <MATCHER_COUNT>`",
-            ));
-        }
-
-        // Check that the manager name is correctly defined
-        let manager_name = match &args[0] {
-            Expr::Path(expr_path) if expr_path.path.segments.len() == 1 => expr_path.path.clone(),
-            other => return Err(Error::new_spanned(other, "Expected `<MANAGER_NAME>` here")),
+impl FairjaxManagerDefinition {
+    pub fn parse(input: TokenStream) -> Result<Self> {
+        // Check that the matcher count is correctly defined
+        let matcher_count_lit = match syn::parse2(input.clone()) {
+            Ok(Expr::Lit(expr_lit)) => expr_lit.lit.clone(),
+            _ => return Err(Error::new_spanned(input, "Expected `<MATCHER_COUNT>` here")),
         };
 
-        // Check that the message type is correctly defined
-        let message_type = match &args[1] {
-            Expr::Path(expr_path) => expr_path.path.clone(),
-            other => return Err(Error::new_spanned(other, "Expected `<MANAGER_NAME>` here")),
-        };
-
-        // Check that the mailbox count is correctly defined
-        let matcher_count_lit = match &args[2] {
-            Expr::Lit(expr_lit) => expr_lit.lit.clone(),
-            other => return Err(Error::new_spanned(other, "Expected `<MATCHER_COUNT>` here")),
-        };
-
+        // Validate that thematcher count is a usize > 0
         let error = Error::new_spanned(
             matcher_count_lit.clone(),
-            "Expected `MATCHER_COUNT` to be a valid usize integer",
+            "Expected `MATCHER_COUNT` to be a valid, nonzero usize integer",
         );
-        let matcher_count = match matcher_count_lit.clone() {
-            Lit::Int(lit_int) => lit_int.base10_parse::<usize>().map_err(|_| error)?,
+
+        let matcher_count = match matcher_count_lit {
+            Lit::Int(lit_int) => match lit_int.base10_parse::<usize>() {
+                Ok(count) if count > 0 => count,
+                _ => return Err(error),
+            },
             _ => return Err(error),
         };
 
-        Ok(FairjaxManagerDefinition {
-            manager_name,
-            message_type,
-            matcher_count,
-        })
+        Ok(FairjaxManagerDefinition { matcher_count })
     }
 }
 
@@ -63,20 +37,20 @@ impl Parse for FairjaxManagerDefinition {
 impl FairjaxManagerDefinition {
     pub fn generate(self) -> TokenStream {
         // Define standardized struct and enum names
-        let enum_ident = Ident::new("ActiveMatcher", Span::call_site());
         let struct_ident = Ident::new("FairjaxManager", Span::call_site());
+        let enum_ident = Ident::new("Matcher", Span::call_site());
+        let enum_variant_names: Vec<_> = (0..self.matcher_count)
+            .into_iter()
+            .map(|i| format_ident!("Fairjax{}", i))
+            .collect();
 
         // Generate code snippets
-        let enum_code = Self::gen_enum_declaration_code(&enum_ident, self.matcher_count);
-        let struct_code = Self::gen_struct_declaration_code(&enum_ident, &struct_ident);
-        let new_code = Self::gen_new_code(&enum_ident, &struct_ident);
-        let active_matcher_code = Self::gen_active_matcher_code(&enum_ident, self.matcher_count);
+        let enum_code = Self::gen_enum_declaration_code(&enum_ident, &enum_variant_names);
+        let struct_code =
+            Self::gen_struct_declaration_code(&enum_ident, &struct_ident, self.matcher_count);
+        let new_code = Self::gen_new_code(&enum_ident, &struct_ident, &enum_variant_names[0]);
+        let active_matcher_code = Self::gen_active_matcher_code(&enum_ident, &enum_variant_names);
         let switch_to_code = Self::gen_switch_to_code(&enum_ident);
-
-        // Retrieve values for code block
-        let message_type = self.message_type;
-        let manager_name = self.manager_name;
-        let matcher_count = self.matcher_count;
 
         // Combine everything
         quote! {
@@ -85,7 +59,7 @@ impl FairjaxManagerDefinition {
 
             #struct_code
 
-            impl<T, const N: usize> #struct_ident<T, N> {
+            impl<T> #struct_ident<T> {
                 #new_code
 
                 #active_matcher_code
@@ -100,47 +74,49 @@ impl FairjaxManagerDefinition {
                     self.queue.borrow_mut().pop_front()
                 }
             }
-
-            // Init manager
-            let #manager_name = FairjaxManager::<#message_type, #matcher_count>::new();
         }
     }
 }
 
 // Codegen Helpers
 impl FairjaxManagerDefinition {
-    fn gen_enum_declaration_code(enum_ident: &Ident, matcher_count: usize) -> TokenStream {
-        // Create idents for each matcher / enum variant
-        let matchers: Vec<_> = (0..matcher_count)
-            .into_iter()
-            .map(|i| format_ident!("Matcher{}", i))
-            .collect();
-
+    fn gen_enum_declaration_code(
+        enum_ident: &Ident,
+        enum_variant_names: &Vec<Ident>,
+    ) -> TokenStream {
         quote! {
             enum #enum_ident {
-                #( #matchers ),* ,
+                #( #enum_variant_names ),* ,
             }
         }
     }
 
-    fn gen_struct_declaration_code(enum_ident: &Ident, struct_ident: &Ident) -> TokenStream {
+    fn gen_struct_declaration_code(
+        enum_ident: &Ident,
+        struct_ident: &Ident,
+        matcher_count: usize,
+    ) -> TokenStream {
         quote! {
-            struct #struct_ident<T, const N: usize> {
-                active_matcher: RefCell<#enum_ident>,
-                mailboxes: [RefCell<fairjax_core::MailBox<T>>; N],
-                queue: RefCell<VecDeque<T>>,
+            struct #struct_ident<T> {
+                active_matcher: std::cell::RefCell<#enum_ident>,
+                mailboxes: [std::cell::RefCell<fairjax_core::MailBox<T>>; #matcher_count],
+                queue: std::cell::RefCell<std::collections::VecDeque<T>>,
             }
 
         }
     }
 
-    fn gen_new_code(enum_ident: &Ident, struct_ident: &Ident) -> TokenStream {
+    fn gen_new_code(
+        enum_ident: &Ident,
+        struct_ident: &Ident,
+        enum_variant_name: &Ident,
+    ) -> TokenStream {
         quote! {
             pub fn new() -> Self {
                 #struct_ident {
-                    active_matcher: RefCell::new(#enum_ident::Matcher0),
-                    mailboxes: array::from_fn(|_| RefCell::new(fairjax_core::MailBox::<T>::default())),
-                    queue: RefCell::new(VecDeque::new()),
+                    active_matcher: std::cell::RefCell::new(#enum_ident::#enum_variant_name),
+                    mailboxes: std::array::from_fn(|_| std::cell::RefCell::new(fairjax_core::MailBox::<T>::default())),
+                    queue: std::cell::RefCell::new(std::collections::VecDeque::new()),
                 }
             }
         }
@@ -148,7 +124,7 @@ impl FairjaxManagerDefinition {
 
     fn gen_switch_to_code(enum_ident: &Ident) -> TokenStream {
         quote! {
-            pub fn switch_to(&self, target: #enum_ident, mut current_mailbox: RefMut<fairjax_core::MailBox<T>>) {
+            pub fn switch_to(&self, target: #enum_ident, mut current_mailbox: std::cell::RefMut<fairjax_core::MailBox<T>>) {
                 // Extract messages and push to processing queue
                 let previous_messages = current_mailbox.extract();
                 for m in previous_messages.into_iter().rev() {
@@ -161,19 +137,14 @@ impl FairjaxManagerDefinition {
         }
     }
 
-    fn gen_active_matcher_code(enum_ident: &Ident, matcher_count: usize) -> TokenStream {
+    fn gen_active_matcher_code(enum_ident: &Ident, enum_variant_names: &Vec<Ident>) -> TokenStream {
         // Create idents and idx's for each matcher / enum variant
-        let matcher_idxs = 0..matcher_count;
-        let matchers: Vec<_> = matcher_idxs
-            .clone()
-            .into_iter()
-            .map(|i| format_ident!("Matcher{}", i))
-            .collect();
+        let matcher_idxs = 0..enum_variant_names.len();
 
         quote! {
-            pub fn active_matcher<'a>(&'a self) -> (#enum_ident, RefMut<'a, fairjax_core::MailBox<T>>) {
+            pub fn active_matcher<'a>(&'a self) -> (#enum_ident, std::cell::RefMut<'a, fairjax_core::MailBox<T>>) {
                 match *self.active_matcher.borrow() {
-                    #( #enum_ident::#matchers => (#enum_ident::#matchers, self.mailboxes[#matcher_idxs].borrow_mut()) ),* ,
+                    #( #enum_ident::#enum_variant_names => (#enum_ident::#enum_variant_names, self.mailboxes[#matcher_idxs].borrow_mut()) ),* ,
                 }
             }
         }
@@ -184,86 +155,41 @@ impl FairjaxManagerDefinition {
 mod tests {
     use super::*;
     use proc_macro_utils::assert_tokens;
-    use quote::ToTokens;
-    use syn::parse_str;
 
     #[test]
     fn test_parse_valid_input() {
         // Define input
-        let input = "MyManager, MyMessage, 3";
+        let input = quote!(3);
 
         // Parse
-        let result: FairjaxManagerDefinition = parse_str(input).unwrap();
+        let result = FairjaxManagerDefinition::parse(input).unwrap();
 
         // Assert correctness
         assert_eq!(result.matcher_count, 3);
-        assert_tokens!(result.manager_name.to_token_stream(), { MyManager });
-        assert_tokens!(result.message_type.to_token_stream(), { MyMessage });
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_parse_invalid_input_count() {
-        // Define input
-        let input = "MyManager, MyMessage";
-
-        // Parse (Should fail with only two inputs)
-        let _: FairjaxManagerDefinition = parse_str(input).unwrap();
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_parse_numbers_as_manager_name() {
-        // Define input
-        let input = "123, MyMessage, 2";
-
-        // Parse (Should fail with manager name not being a path)
-        let _: FairjaxManagerDefinition = parse_str(input).unwrap();
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_parse_long_path_as_manager_name() {
-        // Define input
-        let input = "some::path::MyManager, MyMessage, 2";
-
-        // Parse (Should fail with manager name not being a path of length 1)
-        let _: FairjaxManagerDefinition = parse_str(input).unwrap();
-    }
-
-    #[test]
-    fn test_long_path_as_message_type() {
-        // Define input
-        let input = "MyManager, some::path::MyMessage, 3";
-
-        // Parse
-        let result: FairjaxManagerDefinition = parse_str(input).unwrap();
-
-        // Assert correctness
-        assert_eq!(result.matcher_count, 3);
-        assert_tokens!(result.manager_name.to_token_stream(), { MyManager });
-        assert_tokens!(result.message_type.to_token_stream(), {
-            some::path::MyMessage
-        });
     }
 
     #[test]
     fn test_gen_enum_declaration_code() {
         // Define input
         let enum_ident = format_ident!("MyMatcher");
-        let matcher_count = 4;
+        let variant_idents = vec![
+            format_ident!("Fairjax0"),
+            format_ident!("Fairjax1"),
+            format_ident!("Fairjax2"),
+            format_ident!("Fairjax3"),
+        ];
 
         // Perform codegen
         let result =
-            FairjaxManagerDefinition::gen_enum_declaration_code(&enum_ident, matcher_count);
+            FairjaxManagerDefinition::gen_enum_declaration_code(&enum_ident, &variant_idents);
 
         // Assert correctness
         assert_tokens!(result, {
             enum MyMatcher {
-                Matcher0,
-                Matcher1,
-                Matcher2,
-                Matcher3,
+                Fairjax0,
+                Fairjax1,
+                Fairjax2,
+                Fairjax3,
             }
         });
     }

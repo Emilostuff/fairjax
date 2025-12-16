@@ -59,7 +59,9 @@ pub fn fairjax(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 }
 
 #[proc_macro]
-pub fn fairjax_manager(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let def = syn::parse_macro_input!(input as FairjaxManagerDefinition);
-    def.generate().into()
+pub fn fairjax_switch(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    match FairjaxManagerDefinition::parse(input.into()) {
+        Ok(def) => def.generate().into(),
+        Err(e) => e.to_compile_error().into(),
+    }
 }
