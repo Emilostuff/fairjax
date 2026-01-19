@@ -48,6 +48,7 @@ impl GuardCodeGen for GuardCompiler {
 
         quote_spanned! {
             span =>
+            #[inline(always)]
             fn #fn_ident(
                 #messages_param_ident: &[&#message_type; #pattern_len],
                 #mapping_param_ident: &fairjax_core::Mapping<#pattern_len>,
@@ -233,6 +234,7 @@ mod tests {
         );
 
         assert_tokens!(generated, {
+            #[inline(always)]
             fn guard_fn(
                 messages: &[&MSG_TYPE; 1usize],
                 mapping: &fairjax_core::Mapping<1usize>,
@@ -258,6 +260,7 @@ mod tests {
         );
 
         assert_tokens!(generated, {
+            #[inline(always)]
             fn guard_fn_large(
                 messages: &[&MSG_TYPE; 4usize],
                 mapping: &fairjax_core::Mapping<4usize>,

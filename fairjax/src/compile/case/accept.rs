@@ -38,6 +38,7 @@ impl AcceptCodeGen for AcceptCompiler {
 
         quote_spanned! {
             span =>
+            #[inline(always)]
             fn #fn_ident(input: &#message_type,) -> bool {
                 #[allow(unreachable_patterns, unused_variables)]
                 match input {
