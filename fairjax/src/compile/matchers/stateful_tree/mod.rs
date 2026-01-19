@@ -104,6 +104,7 @@ impl StatefulTreeCompiler {
         let match_arms = M::generate::<SubPatternCompiler>(span, bundle);
 
         quote_spanned! { span =>
+            #[inline(always)]
             fn extend(&self, message: &#message_type, id: fairjax_core::MessageId) -> Option<Self> {
                 let mut new_group = self.clone();
                 #[allow(unreachable_patterns)]
@@ -126,6 +127,7 @@ impl StatefulTreeCompiler {
 
     fn gen_is_complete_code(span: Span, pattern_size: usize) -> TokenStream {
         quote_spanned! { span =>
+            #[inline(always)]
             fn is_complete(&self) -> bool {
                 self.counter >= #pattern_size
             }
@@ -134,6 +136,7 @@ impl StatefulTreeCompiler {
 
     fn gen_message_ids_code(span: Span, pattern_size: usize) -> TokenStream {
         quote_spanned! { span =>
+            #[inline(always)]
             fn message_ids(&self) -> &[Option<fairjax_core::MessageId>; #pattern_size] {
                 &self.messages
             }
