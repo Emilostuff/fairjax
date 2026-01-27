@@ -106,7 +106,7 @@ impl PartitionVars {
             return acc.with_errors(
                 format!(
                     "'{}' must occur exactly once in every \
-                        message pattern to be a partition variable",
+                        message pattern to be a uniting variable",
                     name
                 ),
                 occ,
@@ -117,7 +117,7 @@ impl PartitionVars {
         if let Some(dups) = Self::duplicates(&occ) {
             return acc.with_errors(
                 format!(
-                    "Multiple occurences of partition variable '{}' \
+                    "Multiple occurences of uniting variable '{}' \
                             within a single message pattern.",
                     name
                 ),

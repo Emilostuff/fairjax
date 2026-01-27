@@ -33,7 +33,7 @@ impl CaseBundleDefinition {
                             if !SubPatternContents::same_placements(&partition_var, first, other) {
                                 return Err(syn::Error::new(
                                     Span::call_site(),
-                                    "Pattern must only have one occurrence per message variant when using partition variables.",
+                                    "Pattern must only have one occurrence per message variant when using uniting variables.",
                                 ));
                             }
                         }
