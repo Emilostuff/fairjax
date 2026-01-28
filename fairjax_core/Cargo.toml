@@ -2,6 +2,14 @@
 name = "fairjax_core"
 version = "0.1.0"
 edition = "2024"
+authors = ["Emil Skydsgaard <emilskydsgaard@gmail.com>", "Jonas Attrup <attrup.jonas@gmail.com>"]
+categories = ["algorithms"]
+description = "Core package for fairjax"
+documentation = "https://docs.rs/fairjax_core"
+keywords = ["fairjax", "fair", "join", "pattern", "matching", "actor", "programming"]
+license = "MIT"
+readme = "../README.md"
+repository = "https://github.com/emilostuff/fairjax"
 
 [dependencies]
 itertools = "0.14.0"
