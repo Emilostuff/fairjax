@@ -1,6 +1,7 @@
 use fairjax::*;
 use fairjax_core::MailBox;
 
+/// Different types of jobs
 #[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum JobKind {
@@ -11,6 +12,7 @@ pub enum JobKind {
     Infer,
 }
 
+/// Different types of resource
 #[derive(Clone, Debug, PartialEq)]
 pub enum ResourceType {
     Cpu { cores: usize, ram_gb: usize },
@@ -32,6 +34,7 @@ impl ResourceType {
     }
 }
 
+/// Top level message type
 #[derive(Clone, Debug, PartialEq)]
 pub enum Msg {
     Job {
@@ -62,6 +65,7 @@ impl Msg {
     }
 }
 
+/// Function to simulate initiating a job with a worker
 fn run_job(job_id: usize, worker_ids: Vec<usize>) {
     println!("Running job {} using workers {:?}", job_id, worker_ids);
 }
@@ -71,7 +75,10 @@ use Msg::*;
 use ResourceType::*;
 
 fn main() {
+    // Create mailbox
     let mut mailbox = MailBox::default();
+
+    // Mock the incoming messages
     let messages = vec![
         Msg::job(1, Render, 12),
         Msg::job(2, Infer, 100),
@@ -84,9 +91,12 @@ fn main() {
         Msg::worker(217, ResourceType::neural_engine()),
     ];
 
+    // receive the messages one by one
     for msg in messages {
+        // Fair join pattern matching
         #[rustfmt::skip]
         fairjax!(match msg >> [mailbox, Msg] {
+            // Run render jobs on a capable GPU
             (
                 Job { job_id, kind: Render, .. },
                 WorkerAvailable {
@@ -94,10 +104,14 @@ fn main() {
                     resource: Gpu { vram_gb: 8..=24 },
                 },
             ) => run_job(job_id, vec![worker_id]),
+
+            // Run a various jobs on any available CPU
             (
                 Job { job_id, kind: ComputeValue | Encrypt | Decrypt, .. },
                 WorkerAvailable { worker_id, resource: Cpu { .. } },
             ) => run_job(job_id, vec![worker_id]),
+
+            // Run inference jobs with sufficiently high priority on a Neural Engine
             (
                 Job { job_id, kind: Infer, priority: 50.. },
                 WorkerAvailable {
@@ -105,6 +119,9 @@ fn main() {
                     resource: NeuralEngine,
                 },
             )  => run_job(job_id, vec![worker_id]),
+
+            // Run other inference jobs with lower priority on a capable CPU
+            // (or high priority jobs when no Neural Engine is present)
             (
                 Job { job_id, kind: Infer, .. },
                 WorkerAvailable {

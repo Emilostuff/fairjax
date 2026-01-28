@@ -11,6 +11,10 @@ use JobKind::*;
 use Resource::*;
 use Status::*;
 
+/// Simulation of multiple actors working together:
+/// - 1 Coordinator to match jobs to available workers
+/// - 1 Monitor to keep track of progress and log to the terminal
+/// - Multiple workers with different capacities (see below)
 #[actix::main]
 async fn main() {
     let m = Monitor::start_default();

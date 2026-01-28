@@ -2,7 +2,7 @@ use actix::prelude::*;
 use fairjax::*;
 use fairjax_core::MailBox;
 
-/// Define message enum
+/// Top level message type
 #[derive(Debug)]
 enum Event {
     A(usize),
