@@ -2,6 +2,14 @@
 name = "fairjax"
 version = "0.1.0"
 edition = "2024"
+authors = ["Emil Skydsgaard <emilskydsgaard@gmail.com>", "Jonas Attrup <attrup.jonas@gmail.com>"]
+categories = ["algorithms"]
+description = "Fair join pattern matching"
+documentation = "https://docs.rs/fairjax"
+keywords = ["fairjax", "fair", "join", "pattern", "matching", "actor", "programming"]
+license = "MIT"
+readme = "../README.md"
+repository = "https://github.com/emilostuff/fairjax"
 
 [lib]
 proc-macro = true
