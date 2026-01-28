@@ -11,7 +11,7 @@ impl PartitionsCompiler {
     /// Generate declaration code for a BruteForceMatcher
     pub fn generate(
         pattern: &PatternDefinition,
-        partition_vars: &Vec<String>,
+        uniting_vars: &Vec<String>,
         context: Context,
         bundle: &dyn CaseBundle,
         factory_ident: &Ident,
@@ -27,7 +27,7 @@ impl PartitionsCompiler {
         );
         let key_code = crate::compile::matchers::partitions::key::KeyExtractionCompiler::generate(
             pattern,
-            partition_vars,
+            uniting_vars,
             &key_fn_ident,
             context,
         );

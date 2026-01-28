@@ -10,7 +10,7 @@ pub struct KeyExtractionCompiler;
 impl KeyExtractionCompiler {
     pub fn generate(
         pattern: &PatternDefinition,
-        partition_vars: &Vec<String>,
+        uniting_vars: &Vec<String>,
         key_fn_ident: &Ident,
         context: Context,
     ) -> TokenStream {
@@ -20,12 +20,12 @@ impl KeyExtractionCompiler {
             .map(|sp| sp.get().to_syn_pattern().to_token_stream())
             .collect::<Vec<_>>();
 
-        let partition_var_idents = partition_vars
+        let uniting_var_idents = uniting_vars
             .iter()
             .map(|var| Ident::new(var, pattern.span()))
             .collect::<Vec<_>>();
 
-        let key = quote_spanned!(pattern.span() => (#(#partition_var_idents.clone()),*));
+        let key = quote_spanned!(pattern.span() => (#(#uniting_var_idents.clone()),*));
         let message_type = context.message_type;
 
         quote_spanned! {
@@ -61,7 +61,7 @@ mod tests {
             }
         ));
         let pattern = PatternDefinition::parse(match_arm_pattern).unwrap();
-        let partition_vars = vec!["id".to_string(), "id2".to_string()];
+        let uniting_vars = vec!["id".to_string(), "id2".to_string()];
         let key_fn_ident = Ident::new("fn_ident", Span::call_site());
         let context = Context {
             incoming_message: parse_quote!(unused),
@@ -71,7 +71,7 @@ mod tests {
 
         // Generate KeyCode
         let key_code =
-            KeyExtractionCompiler::generate(&pattern, &partition_vars, &key_fn_ident, context);
+            KeyExtractionCompiler::generate(&pattern, &uniting_vars, &key_fn_ident, context);
 
         #[rustfmt::skip]
         assert_tokens!(key_code, {

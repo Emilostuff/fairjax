@@ -2,9 +2,7 @@ pub mod clean;
 pub mod counts;
 pub mod var;
 
-use crate::analyse::partition::{
-    clean::SubPatternCleaner, counts::IdentCounts, var::PartitionVars,
-};
+use crate::analyse::partition::{clean::SubPatternCleaner, counts::IdentCounts, var::UnitingVars};
 use crate::parse::pattern::PatternDefinition;
 use crate::traits::Pattern;
 use syn::Result;
@@ -26,7 +24,7 @@ impl Partitioning {
         let counts = IdentCounts::analyse(&pattern)?;
 
         // Handle result
-        match PartitionVars::identify(counts, pattern.len())? {
+        match UnitingVars::identify(counts, pattern.len())? {
             vars if !vars.is_empty() => Ok(Some(Self {
                 vars: vars.clone(),
                 original_pattern: pattern.clone(),
@@ -39,7 +37,7 @@ impl Partitioning {
     /// Clean sub-patterns, but skip first sub-pattern to keep idents in scope for body and guard code
     fn get_cleaned_pattern(
         pattern: &PatternDefinition,
-        partition_vars: &Vec<String>,
+        uniting_vars: &Vec<String>,
     ) -> PatternDefinition {
         let mut cleaned_pattern = pattern.clone();
         cleaned_pattern
@@ -47,7 +45,7 @@ impl Partitioning {
             .split_at_mut(1)
             .1
             .iter_mut()
-            .for_each(|sp| SubPatternCleaner::clean(sp, partition_vars));
+            .for_each(|sp| SubPatternCleaner::clean(sp, uniting_vars));
         cleaned_pattern
     }
 }
@@ -81,7 +79,7 @@ mod tests {
     }
 
     #[test]
-    fn test_partition_var_analyse_simple() {
+    fn test_uniting_var_analyse_simple() {
         // Define inputs
         let input: Pat = parse_quote!((A(x), B(x)));
 
@@ -98,7 +96,7 @@ mod tests {
             .map(|sp| sp.to_syn_pattern())
             .collect::<Vec<_>>();
 
-        // Verify correct partition variable is extracted
+        // Verify correct uniting variable is extracted
         assert_eq!(vec!["x"], result.vars);
 
         // Verify pattern is cleaned correctly
@@ -107,7 +105,7 @@ mod tests {
     }
 
     #[test]
-    fn test_partition_var_analyse_nested() {
+    fn test_uniting_var_analyse_nested() {
         // Define inputs
         let input: Pat = parse_quote!((A { x: (_, id), .. }, B(_, id), C { id }));
         let pattern = PatternDefinition::parse(input).unwrap();
@@ -120,17 +118,17 @@ mod tests {
     }
 
     #[test]
-    fn test_partition_var_analyse_none() {
+    fn test_uniting_var_analyse_none() {
         // Define inputs
         let input: Pat = parse_quote!((A { x: (_, id), .. }, B(_, id2), C { id3 }));
         let pattern = PatternDefinition::parse(input).unwrap();
 
-        // Parse input and ensure no partition vars are found
+        // Parse input and ensure no uniting vars are found
         assert!(Partitioning::analyse(&pattern).unwrap().is_none());
     }
 
     #[test]
-    fn test_partition_var_analyse_multiple_vars() {
+    fn test_uniting_var_analyse_multiple_vars() {
         // Define inputs
         let input: Pat = parse_quote!((A { x: (_, id), data }, B(id, data), C { id, data }));
         let pattern = PatternDefinition::parse(input).unwrap();
@@ -146,7 +144,7 @@ mod tests {
             .map(|sp| sp.to_syn_pattern())
             .collect::<Vec<_>>();
 
-        // Verify correct partition variable is extracted
+        // Verify correct uniting variable is extracted
         assert_eq!(vec!["data", "id"], result.vars);
 
         // Verify pattern is cleaned correctly
@@ -158,7 +156,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_partition_var_analyse_failing() {
+    fn test_uniting_var_analyse_failing() {
         // Define inputs
         let input: Pat = parse_quote!((A { x: (_, id), .. }, B(id, id), C { id }));
         let pattern = PatternDefinition::parse(input).unwrap();
@@ -169,7 +167,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_partition_var_analyse_failing_incomplete() {
+    fn test_uniting_var_analyse_failing_incomplete() {
         // Define inputs
         let input: Pat = parse_quote! {
             (A { x: (_, toast), data }, B(id, _), C { id } )

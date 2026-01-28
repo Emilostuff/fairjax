@@ -21,7 +21,7 @@ impl ActionCodeGen for Action {
         quote_spanned! { case.span() =>
             match #result_ident.#tuple_ident() {
                 #pattern_match_code => #body,
-                _ => panic!("not good"),
+                _ => panic!("A critical error has occured!"),
             }
         }
     }
@@ -102,7 +102,7 @@ mod tests {
         assert_tokens!(generated, {
             match result.into_1() {
                 SIZE_1 => BODY,
-                _ => panic!("not good"),
+                _ => panic!("A critical error has occured!"),
             }
         });
     }
@@ -118,7 +118,7 @@ mod tests {
         assert_tokens!(generated, {
             match result.into_2() {
                 SIZE_2 => BODY,
-                _ => panic!("not good"),
+                _ => panic!("A critical error has occured!"),
             }
         });
     }
@@ -134,7 +134,7 @@ mod tests {
         assert_tokens!(generated, {
             match result.into_5() {
                 SIZE_5 => BODY,
-                _ => panic!("not good"),
+                _ => panic!("A critical error has occured!"),
             }
         });
     }

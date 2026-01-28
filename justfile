@@ -11,15 +11,15 @@ clear:
     printf '\033c'
 
 test arg="":
-    cargo nextest run -r {{arg}}
+    cargo nextest run -r {{ arg }}
 
 test-heavy:
     cargo nextest run -r --run-ignored=only
 
 baseline benchname="":
-    @if [ -n "{{benchname}}" ]; then \
-        echo "\033[1mSetting baseline for: {{benchname}}\033[0m"; \
-        cargo bench --bench "{{benchname}}" -- --save-baseline baseline; \
+    @if [ -n "{{ benchname }}" ]; then \
+        echo "\033[1mSetting baseline for: {{ benchname }}\033[0m"; \
+        cargo bench --bench "{{ benchname }}" -- --save-baseline baseline; \
     else \
         for f in test_suite/benches/*.rs; do \
             name=$(basename "$f" .rs); \
@@ -28,11 +28,10 @@ baseline benchname="":
         done; \
     fi
 
-
 bench benchname="":
-    @if [ -n "{{benchname}}" ]; then \
-    echo "\033[1mBenchmarking: {{benchname}}\033[0m"; \
-        cargo bench --bench "{{benchname}}" -- --baseline baseline; \
+    @if [ -n "{{ benchname }}" ]; then \
+    echo "\033[1mBenchmarking: {{ benchname }}\033[0m"; \
+        cargo bench --bench "{{ benchname }}" -- --baseline baseline; \
     else \
         for f in test_suite/benches/*.rs; do \
             name=$(basename "$f" .rs); \
@@ -42,4 +41,7 @@ bench benchname="":
     fi
 
 example name:
-    cargo r -p examples --example {{name}}
+    cargo r -p examples --example {{ name }}
+
+docs:
+    cargo doc --workspace --no-deps --open

@@ -2,20 +2,20 @@ use super::counts::{IdentCounts, SubPatternOccurrences};
 use syn::{Error, Result};
 
 pub struct Accumulator {
-    partition_vars: Vec<String>,
+    uniting_vars: Vec<String>,
     errors: Option<Error>,
 }
 
 impl Accumulator {
     fn new() -> Self {
         Accumulator {
-            partition_vars: vec![],
+            uniting_vars: vec![],
             errors: None,
         }
     }
 
-    fn with_partition_var(mut self, name: String) -> Self {
-        self.partition_vars.push(name);
+    fn with_uniting_var(mut self, name: String) -> Self {
+        self.uniting_vars.push(name);
         self
     }
 
@@ -42,9 +42,9 @@ impl Accumulator {
     }
 }
 
-pub struct PartitionVars;
+pub struct UnitingVars;
 
-impl PartitionVars {
+impl UnitingVars {
     pub fn identify(idents: IdentCounts, pattern_size: usize) -> Result<Vec<String>> {
         let result = idents
             .into_iter()
@@ -54,7 +54,7 @@ impl PartitionVars {
 
         match result.errors {
             Some(err) => Err(err),
-            None => Ok(result.partition_vars),
+            None => Ok(result.uniting_vars),
         }
     }
 
@@ -125,8 +125,8 @@ impl PartitionVars {
             );
         }
 
-        // Variable is a valid partition variable
-        acc.with_partition_var(name)
+        // Variable is a valid uniting variable
+        acc.with_uniting_var(name)
     }
 }
 
@@ -140,65 +140,65 @@ mod tests {
 
     #[test]
     fn test_is_var_correct() {
-        assert!(PartitionVars::is_var(&"x".into()));
-        assert!(PartitionVars::is_var(&"var_name".into()));
-        assert!(PartitionVars::is_var(&"name123".into()));
-        assert!(PartitionVars::is_var(&"_unused_var_name".into()));
+        assert!(UnitingVars::is_var(&"x".into()));
+        assert!(UnitingVars::is_var(&"var_name".into()));
+        assert!(UnitingVars::is_var(&"name123".into()));
+        assert!(UnitingVars::is_var(&"_unused_var_name".into()));
     }
 
     #[test]
     fn test_is_var_incorrect() {
-        assert!(!PartitionVars::is_var(&"X".into()));
-        assert!(!PartitionVars::is_var(&"MyEnumVariant".into()));
-        assert!(!PartitionVars::is_var(&"Test1".into()));
-        assert!(!PartitionVars::is_var(&"weirdCamelCaseIdent".into()));
-        assert!(!PartitionVars::is_var(&"SOME_CONSTANT123".into()));
+        assert!(!UnitingVars::is_var(&"X".into()));
+        assert!(!UnitingVars::is_var(&"MyEnumVariant".into()));
+        assert!(!UnitingVars::is_var(&"Test1".into()));
+        assert!(!UnitingVars::is_var(&"weirdCamelCaseIdent".into()));
+        assert!(!UnitingVars::is_var(&"SOME_CONSTANT123".into()));
     }
 
     #[test]
     fn test_count_basic() {
         // 3 sub-patterns, with 1, 2, and 0 occurrences respectively
         let occurrences = get_dummy_occurrences(vec![1, 2, 0]);
-        assert_eq!(PartitionVars::count(&occurrences), 3);
+        assert_eq!(UnitingVars::count(&occurrences), 3);
     }
 
     #[test]
     fn test_count_empty() {
         let occurrences = get_dummy_occurrences(vec![0, 0, 0]);
-        assert_eq!(PartitionVars::count(&occurrences), 0);
+        assert_eq!(UnitingVars::count(&occurrences), 0);
     }
 
     #[test]
     fn test_in_all_true() {
         let pattern_size = 3;
         let occurrences = get_dummy_occurrences(vec![1, 1, 1]);
-        assert!(PartitionVars::in_all(&occurrences, pattern_size));
+        assert!(UnitingVars::in_all(&occurrences, pattern_size));
     }
 
     #[test]
     fn test_in_all_true_with_dups() {
         let pattern_size = 3;
         let occurrences = get_dummy_occurrences(vec![1, 2, 3]);
-        assert!(PartitionVars::in_all(&occurrences, pattern_size));
+        assert!(UnitingVars::in_all(&occurrences, pattern_size));
     }
 
     #[test]
     fn test_in_all_false_missing() {
         let pattern_size = 3;
         let occurrences = get_dummy_occurrences(vec![1, 0, 1]);
-        assert!(!PartitionVars::in_all(&occurrences, pattern_size));
+        assert!(!UnitingVars::in_all(&occurrences, pattern_size));
     }
 
     #[test]
     fn test_duplicates_none() {
         let occurrences = get_dummy_occurrences(vec![1, 1, 1]);
-        assert!(PartitionVars::duplicates(&occurrences).is_none());
+        assert!(UnitingVars::duplicates(&occurrences).is_none());
     }
 
     #[test]
     fn test_duplicates_some() {
         let occurrences = get_dummy_occurrences(vec![1, 2, 1]);
-        let dups = PartitionVars::duplicates(&occurrences);
+        let dups = UnitingVars::duplicates(&occurrences);
         let dups_vec = dups.unwrap();
         assert_eq!(dups_vec.len(), 1);
         assert_eq!(dups_vec[0].len(), 2);
@@ -207,7 +207,7 @@ mod tests {
     #[test]
     fn test_duplicates_multiple() {
         let occurrences = get_dummy_occurrences(vec![2, 2, 1]);
-        let dups = PartitionVars::duplicates(&occurrences);
+        let dups = UnitingVars::duplicates(&occurrences);
         let dups_vec = dups.unwrap();
         assert_eq!(dups_vec.len(), 2);
         assert_eq!(dups_vec[0].len(), 2);
@@ -227,8 +227,8 @@ mod tests {
         let name = "x".into();
         let occurrences = get_dummy_occurrences(vec![1, 1, 1, 1, 1, 1]);
 
-        let result = PartitionVars::check(Accumulator::new(), pattern_size, name, occurrences);
-        assert_eq!(vec!["x"], result.partition_vars);
+        let result = UnitingVars::check(Accumulator::new(), pattern_size, name, occurrences);
+        assert_eq!(vec!["x"], result.uniting_vars);
     }
 
     #[test]
@@ -237,8 +237,8 @@ mod tests {
         let name = "x".into();
         let occurrences = get_dummy_occurrences(vec![0, 1, 0, 0]);
 
-        let result = PartitionVars::check(Accumulator::new(), pattern_size, name, occurrences);
-        assert!(result.partition_vars.is_empty());
+        let result = UnitingVars::check(Accumulator::new(), pattern_size, name, occurrences);
+        assert!(result.uniting_vars.is_empty());
     }
 
     #[test]
@@ -247,8 +247,8 @@ mod tests {
         let name = "EnumVariant".into();
         let occurrences = get_dummy_occurrences(vec![1, 2, 3, 4]);
 
-        let result = PartitionVars::check(Accumulator::new(), pattern_size, name, occurrences);
-        assert!(result.partition_vars.is_empty());
+        let result = UnitingVars::check(Accumulator::new(), pattern_size, name, occurrences);
+        assert!(result.uniting_vars.is_empty());
     }
 
     #[test]
@@ -257,8 +257,8 @@ mod tests {
         let name = "x".into();
         let occurrences = get_dummy_occurrences(vec![1, 1, 0, 1]);
 
-        let result = PartitionVars::check(Accumulator::new(), pattern_size, name, occurrences);
-        assert!(result.partition_vars.is_empty());
+        let result = UnitingVars::check(Accumulator::new(), pattern_size, name, occurrences);
+        assert!(result.uniting_vars.is_empty());
         assert!(result.errors.is_some());
     }
 
@@ -268,8 +268,8 @@ mod tests {
         let name = "x".into();
         let occurrences = get_dummy_occurrences(vec![2, 0, 0, 0]);
 
-        let result = PartitionVars::check(Accumulator::new(), pattern_size, name, occurrences);
-        assert!(result.partition_vars.is_empty());
+        let result = UnitingVars::check(Accumulator::new(), pattern_size, name, occurrences);
+        assert!(result.uniting_vars.is_empty());
         assert!(result.errors.is_some());
     }
 
@@ -279,8 +279,8 @@ mod tests {
         let name = "x".into();
         let occurrences = get_dummy_occurrences(vec![1, 1, 2, 1]);
 
-        let result = PartitionVars::check(Accumulator::new(), pattern_size, name, occurrences);
-        assert!(result.partition_vars.is_empty());
+        let result = UnitingVars::check(Accumulator::new(), pattern_size, name, occurrences);
+        assert!(result.uniting_vars.is_empty());
         assert!(result.errors.is_some());
     }
 
@@ -298,7 +298,7 @@ mod tests {
                 .into_iter(),
             ),
         };
-        let result = PartitionVars::identify(ident_counts, pattern_size).unwrap();
+        let result = UnitingVars::identify(ident_counts, pattern_size).unwrap();
         assert_eq!(vec!["y"], result);
     }
 
@@ -317,7 +317,7 @@ mod tests {
                 .into_iter(),
             ),
         };
-        let result = PartitionVars::identify(ident_counts, pattern_size).unwrap();
+        let result = UnitingVars::identify(ident_counts, pattern_size).unwrap();
         assert_eq!(vec!["y", "z"], result);
     }
 
@@ -336,7 +336,7 @@ mod tests {
                 .into_iter(),
             ),
         };
-        let result = PartitionVars::identify(ident_counts, pattern_size).unwrap();
+        let result = UnitingVars::identify(ident_counts, pattern_size).unwrap();
         assert!(result.is_empty());
     }
 
@@ -354,7 +354,7 @@ mod tests {
                 .into_iter(),
             ),
         };
-        let result = PartitionVars::identify(ident_counts, pattern_size);
+        let result = UnitingVars::identify(ident_counts, pattern_size);
         assert!(result.is_err());
     }
 }

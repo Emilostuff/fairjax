@@ -32,7 +32,7 @@ pub type GuardFn<const C: usize, M> = fn(&[&M; C], &Mapping<C>) -> bool;
 /// Accept function that returns true when a message can be consumed by a case pattern
 pub type AcceptFn<M> = fn(&M) -> bool;
 
-/// Key function that extracts a composite key (based on partition variable) from a message
+/// Key function that extracts a composite key (based on uniting variable) from a message
 pub type KeyFn<M> = fn(&M) -> Option<AnyKeyBox>;
 
 /// Top interface for interacting with a case on messages of type M.
