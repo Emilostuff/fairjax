@@ -1,6 +1,8 @@
 use crate::*;
 use std::collections::HashMap;
 
+/// State-keeping mailbox which must be declared before any `fairjax!` invocation and persist
+/// for the lifetime of the join pattern matching session.
 pub struct MailBox<M> {
     store: Store<M>,
     init: bool,

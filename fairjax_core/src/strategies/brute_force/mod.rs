@@ -1,6 +1,7 @@
 use crate::{CaseHandler, GuardFn, Mapping, MatchedIds, MessageId, Store};
 use itertools::Itertools;
 
+// Brute force matching strategy (inefficient and should only be used for oracle testing)
 #[derive(Clone)]
 pub struct BruteForceMatcher<const C: usize, M> {
     message_ids: Vec<MessageId>,

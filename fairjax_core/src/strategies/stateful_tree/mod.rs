@@ -1,8 +1,6 @@
-pub mod permute;
 pub mod tree;
 
 use crate::{AcceptFn, MatchedIds};
-
 use crate::{CaseHandler, GuardFn, Mapping, MessageId, Store};
 use std::fmt::Debug;
 use tree::Node;

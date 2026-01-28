@@ -1,6 +1,7 @@
 use super::PartialMatch;
 use crate::{GuardFn, Mapping, MatchedIds, MessageId, Store};
 
+/// Node in mailbox tree
 #[derive(Default)]
 pub struct Node<const C: usize, P: PartialMatch<C, M> + Default, M> {
     group: P,
@@ -17,6 +18,7 @@ impl<const C: usize, P: PartialMatch<C, M> + Default, M> Node<C, P, M> {
         }
     }
 
+    /// Extends mailbox tree with new message
     pub fn ramification(
         &mut self,
         message: &M,
@@ -60,6 +62,7 @@ impl<const C: usize, P: PartialMatch<C, M> + Default, M> Node<C, P, M> {
         None
     }
 
+    /// Remove messages from mailbox tree
     pub fn remove(&mut self, messages: &MatchedIds) {
         self.children
             .retain(|node| node.group.has_common_id(messages));
@@ -69,6 +72,7 @@ impl<const C: usize, P: PartialMatch<C, M> + Default, M> Node<C, P, M> {
         }
     }
 
+    /// Checks if mailbox tree contains no messages
     pub fn is_empty(&self) -> bool {
         self.children.is_empty()
     }

@@ -2,7 +2,7 @@ use crate::{AnyKeyBox, KeyFn};
 use crate::{CaseHandler, MatchedIds, MessageId, Store};
 use std::collections::BTreeMap;
 
-/// Matcher backend for a case/join pattern based on the stateful tree algorithm
+/// Matcher backend for stateful tree with partitioning
 pub struct PartitionsMatcher<M, F: Fn() -> Box<dyn CaseHandler<M>>> {
     matcher_factory: F,
     partition_store: BTreeMap<AnyKeyBox, Box<dyn CaseHandler<M>>>,
