@@ -22,13 +22,13 @@ fn run_test(message: &MyMsg) -> usize {
         A { x, .. } if *x == 0 => output = 0,
         // Range (inclusive boundaries)
         A { x, .. } if *x >= 1 && *x <= 5 => output = 1,
-        // String constant
+        // String restriction
         A { y, .. } if *y == "test" => output = 2,
-        // Boolean constant
+        // Boolean restriction
         A { z, .. } if *z == false => output = 3,
-        // Specific combination
+        // Specific restriction on free variables
         A { x, y, z } if *x == 7 && *y == "val" && *z == true => output = 4,
-        // Catch-all
+        // Catch-all (fails test)
         A { .. } => panic!(),
     });
 

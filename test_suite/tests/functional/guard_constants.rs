@@ -26,13 +26,13 @@ fn run_test(message: &MyMsg) -> usize {
         A { y: "test", .. } => output = 2,
         // Boolean constant
         A { z: false, .. } => output = 3,
-        // Specific combination
+        // Specific constant combination
         A {
             x: 7,
             y: "val",
             z: true,
         } => output = 4,
-        // Catch-all
+        // Catch-all (fails test)
         A { .. } => panic!(),
     });
 

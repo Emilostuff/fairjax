@@ -11,7 +11,6 @@ pub mod random {
         pub mod transitive;
         pub mod workers;
     }
-
     pub mod partitions {
         pub mod chess;
         pub mod groups;
